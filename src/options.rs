@@ -80,13 +80,6 @@ pub struct Controls {
 	pub right: Vec<KeycodeIndex>,
 	pub up: Vec<KeycodeIndex>,
 	pub down: Vec<KeycodeIndex>,
-	pub up_left: Vec<KeycodeIndex>,
-	pub up_right: Vec<KeycodeIndex>,
-	pub down_left: Vec<KeycodeIndex>,
-	pub down_right: Vec<KeycodeIndex>,
-
-	pub talk: Vec<KeycodeIndex>,
-	pub cast: Vec<KeycodeIndex>,
 }
 
 impl Default for Controls {
@@ -97,13 +90,6 @@ impl Default for Controls {
 			right: vec![K::L as i32, K::Right as i32, K::Kp6 as i32],
 			up: vec![K::K as i32, K::Up as i32, K::Kp8 as i32],
 			down: vec![K::J as i32, K::Down as i32, K::Kp2 as i32],
-			up_left: vec![K::Y as i32, K::Kp7 as i32],
-			up_right: vec![K::U as i32, K::Kp9 as i32],
-			down_left: vec![K::B as i32, K::Kp1 as i32],
-			down_right: vec![K::N as i32, K::Kp3 as i32],
-
-			talk: vec![K::T as i32],
-			cast: vec![K::Z as i32],
 		}
 	}
 }

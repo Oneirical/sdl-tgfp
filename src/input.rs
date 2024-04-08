@@ -6,7 +6,6 @@ use sdl2::{
 
 pub enum Mode {
 	Normal,
-	Cast,
 }
 
 pub struct Result {
@@ -51,42 +50,7 @@ pub fn world(
 								next_character.next_action =
 									Some(character::Action::Move(character::OrdDir::Down));
 							}
-							if options.controls.up_left.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::UpLeft));
-							}
-							if options.controls.up_right.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::UpRight));
-							}
-							if options.controls.down_left.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::DownLeft));
-							}
-							if options.controls.down_right.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::DownRight));
-							}
-							if options.controls.cast.contains(&(keycode as i32)) {
-								*mode = Mode::Cast;
-							}
 							drop(next_character);
-
-							if options.controls.talk.contains(&(keycode as i32)) {
-								world_manager.console.say("Luvui".into(), "Meow!");
-								world_manager.console.say("Aris".into(), "I am a kitty :3");
-							}
-						}
-						Mode::Cast => {
-							let selected_index = (keycode as i32) - (Keycode::A as i32);
-							if (0..=26).contains(&selected_index)
-								&& (selected_index as usize) < next_character.spells.len()
-							{
-								next_character.next_action = Some(character::Action::Cast(
-									next_character.spells[selected_index as usize].clone(),
-								))
-							}
-							*mode = Mode::Normal;
 						}
 					}
 				}

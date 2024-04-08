@@ -7,46 +7,22 @@ pub struct Piece {
 	// These are nice and serializable :)
 	pub id: Uuid,
 	pub sheet: Sheet,
-
-	pub hp: i32,
-	pub sp: i32,
-	pub attacks: Vec<Attack>,
-	pub spells: Vec<Rc<Spell>>,
-
 	pub x: i32,
 	pub y: i32,
 	pub next_action: Option<Action>,
 	pub player_controlled: bool,
-	pub alliance: Alliance,
 }
 
 impl Piece {
 	pub fn new(sheet: Sheet, resources: &ResourceManager) -> Self {
-		let hp = sheet.stats.heart as i32;
-		let sp = sheet.stats.soul as i32;
-		let attacks = sheet
-			.attacks
-			.iter()
-			.map(|x| resources.get_attack(x).unwrap().clone())
-			.collect();
-		let spells = sheet
-			.spells
-			.iter()
-			.map(|x| Rc::new(resources.get_spell(x).unwrap().clone()))
-			.collect();
 
 		Self {
 			id: Uuid::new_v4(),
 			sheet,
-			hp,
-			sp,
-			attacks,
-			spells,
 			x: 0,
 			y: 0,
 			next_action: None,
 			player_controlled: false,
-			alliance: Alliance::default(),
 		}
 	}
 }
@@ -54,26 +30,18 @@ impl Piece {
 #[derive(Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum OrdDir {
 	Up,
-	UpRight,
 	Right,
-	DownRight,
 	Down,
-	DownLeft,
 	Left,
-	UpLeft,
 }
 
 impl OrdDir {
 	pub fn as_offset(self) -> (i32, i32) {
 		let (x, y) = match self {
 			OrdDir::Up => (0, -1),
-			OrdDir::UpRight => (1, -1),
 			OrdDir::Right => (1, 0),
-			OrdDir::DownRight => (1, 1),
 			OrdDir::Down => (0, 1),
-			OrdDir::DownLeft => (-1, 1),
 			OrdDir::Left => (-1, 0),
-			OrdDir::UpLeft => (-1, -1),
 		};
 		(x, y)
 	}
@@ -85,7 +53,6 @@ impl OrdDir {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Action {
 	Move(OrdDir),
-	Cast(Rc<Spell>),
 }
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]

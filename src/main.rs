@@ -84,13 +84,7 @@ pub fn main() {
 	];
 	let player = character::Piece {
 		player_controlled: true,
-		alliance: character::Alliance::Friendly,
 		..character::Piece::new(party[0].1.clone(), &resources)
-	};
-	let ally = character::Piece {
-		player_controlled: false,
-		alliance: character::Alliance::Friendly,
-		..character::Piece::new(party[1].1.clone(), &resources)
 	};
 	let mut world_manager = world::Manager {
 		location: world::Location {
@@ -103,34 +97,6 @@ pub fn main() {
 		current_floor: Floor::default(),
 		characters: Vec::new(),
 		items: Vec::new(),
-
-		party: vec![
-			world::PartyReference::new(player.id, party[0].0),
-			world::PartyReference::new(ally.id, party[1].0),
-		],
-		inventory: vec![
-			"items/aloe".into(),
-			"items/apple".into(),
-			"items/blinkfruit".into(),
-			"items/fabric_shred".into(),
-			"items/grapes".into(),
-			"items/ice_cream".into(),
-			"items/lily".into(),
-			"items/pear_on_a_stick".into(),
-			"items/pear".into(),
-			"items/pepper".into(),
-			"items/purefruit".into(),
-			"items/raspberry".into(),
-			"items/reviver_seed".into(),
-			"items/ring_alt".into(),
-			"items/ring".into(),
-			"items/scarf".into(),
-			"items/slimy_apple".into(),
-			"items/super_pepper".into(),
-			"items/twig".into(),
-			"items/water_chestnut".into(),
-			"items/watermelon".into(),
-		],
 	};
 	world_manager.characters.push(CharacterRef::new(player));
 	//world_manager.characters.push(CharacterRef::new(ally));
@@ -261,9 +227,9 @@ pub fn main() {
 		world_manager.console.draw(
 			&mut canvas,
 			Rect::new(
-				0,
+				(window_size.0 - options.ui.pamphlet_width) as i32,
 				(window_size.1 - options.ui.console_height) as i32,
-				window_size.0 - options.ui.pamphlet_width,
+				options.ui.pamphlet_width,
 				options.ui.console_height,
 			),
 			&font,
