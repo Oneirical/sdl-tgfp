@@ -133,7 +133,7 @@ pub fn main() {
 		],
 	};
 	world_manager.characters.push(CharacterRef::new(player));
-	world_manager.characters.push(CharacterRef::new(ally));
+	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(0, 0, resources.get_vault("example").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
 	let font = ttf_context
@@ -223,25 +223,35 @@ pub fn main() {
 
 		// Draw tilemap
 		canvas.set_draw_color(Color::WHITE);
-		for (x, col) in world_manager.current_floor.map.iter_cols().enumerate() {
-			for (y, tile) in col.enumerate() {
-				if *tile == floor::Tile::Wall {
-					canvas
-						.fill_rect(Rect::new((x as i32) * options.ui.tile_size as i32, (y as i32) * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size))
-						.unwrap();
-				}
-			}
-		}
 
+		let wi_width = window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2;
+		let wi_height = window_size.1 - options.ui.console_height - options.ui.padding * 2;
+		let mut curr_xy = (0,0);
 		// Draw characters
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
+			let (x, y) = if character.player_controlled {
+				curr_xy = (character.x, character.y);
+				(wi_width as i32 / 2, wi_height as i32 / 2)
+			} else {
+				(0, 0)
+			};
 			canvas
 				.copy(
 					sleep_texture,
 					None,
-					Some(Rect::new(character.x * options.ui.tile_size as i32, character.y * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size)),
+					Some(Rect::new(x, y, options.ui.tile_size, options.ui.tile_size)),
 				)
 				.unwrap();
+		}
+
+		for (x, col) in world_manager.current_floor.map.iter_cols().enumerate() {
+			for (y, tile) in col.enumerate() {
+				if *tile == floor::Tile::Wall {
+					canvas
+						.fill_rect(Rect::new((x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + 10, (y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + 32, options.ui.tile_size, options.ui.tile_size))
+						.unwrap();
+				}
+			}
 		}
 
 		// Render User Interface
@@ -306,6 +316,7 @@ fn pamphlet(
 	left_pamphlet.hsplit(&mut [
 		Some((&mut minimap_fn) as &mut dyn FnMut(&mut gui::Context)),
 	]);
+	let (px, py) = ((window_size.0 - options.ui.pamphlet_width) as i32, 0);
 	let mut pamphlet = gui::Context::new(
 		canvas,
 		Rect::new(
@@ -315,151 +326,33 @@ fn pamphlet(
 			window_size.1,
 		),
 	);
-	pamphlet.label("Forest: Floor 1/8", font);
-	pamphlet.advance(0, 10);
-	// Draw party stats
-	for character_chunk in world_manager.party.chunks(2) {
-		let mut character_windows = [None, None];
-		for (character_id, window) in character_chunk.iter().zip(character_windows.iter_mut()) {
-			*window = Some(|player_window: &mut gui::Context| {
-				if let Some(piece) = world_manager.get_character(character_id.piece) {
-					let piece = piece.borrow();
-					player_window.label_color(
-						&format!(
-							"{} ({:08x})",
-							piece.sheet.nouns.name,
-							piece.id.as_fields().0
-						),
-						match piece.sheet.nouns.pronouns {
-							nouns::Pronouns::Female => Color::RGB(247, 141, 246),
-							nouns::Pronouns::Male => Color::RGB(104, 166, 232),
-							_ => Color::WHITE,
-						},
-						font,
-					);
-					player_window.label(&format!("Level {}", piece.sheet.level), font);
-					player_window.label(
-						&format!("HP: {}/{}", piece.hp, piece.sheet.stats.heart),
-						font,
-					);
-					player_window.progress_bar(
-						(piece.hp as f32) / (piece.sheet.stats.heart as f32),
-						Color::GREEN,
-						Color::RED,
-						10,
-						5,
-					);
-					player_window.label(
-						&format!("SP: {}/{}", piece.sp, piece.sheet.stats.soul),
-						font,
-					);
-					player_window.progress_bar(
-						(piece.sp as f32) / (piece.sheet.stats.soul as f32),
-						Color::BLUE,
-						Color::RED,
-						10,
-						5,
-					);
-					let stats = &piece.sheet.stats;
-					let physical_stat_info = [("Pwr", stats.power), ("Def", stats.defense)];
-					let mut physical_stats = [None, None];
-					for ((stat_name, stat), stat_half) in physical_stat_info
-						.into_iter()
-						.zip(physical_stats.iter_mut())
-					{
-						*stat_half = Some(move |stat_half: &mut gui::Context| {
-							stat_half.label(&format!("{stat_name}: {stat}"), font)
-						});
-					}
-					player_window.hsplit(&mut physical_stats);
-					let magical_stat_info = [("Mag", stats.magic), ("Res", stats.resistance)];
-					let mut magical_stats = [None, None];
-					for ((stat_name, stat), stat_half) in
-						magical_stat_info.into_iter().zip(magical_stats.iter_mut())
-					{
-						*stat_half = Some(move |stat_half: &mut gui::Context| {
-							stat_half.label(&format!("{stat_name}: {stat}"), font)
-						});
-					}
-					player_window.hsplit(&mut magical_stats);
-					player_window.label("Spells", font);
-					let mut spells = piece.sheet.spells.iter().peekable();
-					while spells.peek().is_some() {
-						let textures_per_row = player_window.rect.width() / (32 + 8);
-						player_window.horizontal();
-						for _ in 0..textures_per_row {
-							if let Some(spell) = spells.next() {
-								player_window.htexture(resources.get_texture(spell), 32);
-								player_window.advance(8, 0);
-							}
-						}
-						player_window.vertical();
-						player_window.advance(8, 8);
-					}
-				} else {
-					// If the party array also had a reference to the character's last known character sheet,
-					// a name could be displayed here.
-					// I don't actually know if this is desirable;
-					// this should probably never happen anyways.
-					player_window.label("???", font);
-				}
-			});
-		}
-		pamphlet.hsplit(&mut character_windows);
-	}
-	pamphlet.advance(0, 10);
 
 	let mut inventory_fn = |pamphlet: &mut gui::Context| {
-		pamphlet.label("Inventory", font);
-		let mut items = world_manager.inventory.iter().peekable();
-		while items.peek().is_some() {
-			let textures_per_row = pamphlet.rect.width() / (32 + 8);
-			pamphlet.horizontal();
-			for _ in 0..textures_per_row {
-				if let Some(item_name) = items.next() {
-					pamphlet.htexture(resources.get_texture(item_name), 32);
-					pamphlet.advance(8, 0);
-				}
+		let chains = get_chain_border(12,24);
+  		let mut chains = chains.iter().peekable();
+		pamphlet.horizontal();
+		while chains.peek().is_some() {
+			if let Some(chain) = chains.next() {
+				pamphlet.set((chain.position.0 * 64.) as i32 + px, (chain.position.1 * 32.) as i32 + py);
+				pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
 			}
-			pamphlet.vertical();
-			pamphlet.advance(8, 8);
 		}
 	};
-	let mut souls_fn = |pamphlet: &mut gui::Context| {
-		const SOUL_SIZE: u32 = 50;
-		pamphlet.label("Souls", font);
-
-		let bx = pamphlet.x as f32;
-		let by = pamphlet.y as f32;
-		let display_size = pamphlet.rect.width();
-
-		for soul in &soul_jar.souls {
-			let display_size = (display_size - SOUL_SIZE) as f32;
-			let ox = soul.x * display_size;
-			let oy = soul.y * display_size;
-			soul_jar
-				.light_texture
-				.set_color_mod(soul.color.r, soul.color.g, soul.color.b);
-			pamphlet
-				.canvas
-				.copy(
-					&soul_jar.light_texture,
-					None,
-					Rect::new((bx + ox) as i32, (by + oy) as i32, SOUL_SIZE, SOUL_SIZE),
-				)
-				.unwrap();
+	let mut log_fn = |pamphlet: &mut gui::Context| {
+		let chains = get_chain_border(12,window_size.1 as usize / 16 - 27);
+  		let mut chains = chains.iter().peekable();
+		pamphlet.horizontal();
+		while chains.peek().is_some() {
+			if let Some(chain) = chains.next() {
+				pamphlet.set((chain.position.0 * 64.) as i32 + px, (chain.position.1 * 32.) as i32 + 13 * 32);
+				pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
+			}
 		}
-		pamphlet.advance(0, display_size);
 	};
 	pamphlet.hsplit(&mut [
 		Some((&mut inventory_fn) as &mut dyn FnMut(&mut gui::Context)),
-		Some(&mut souls_fn),
+		Some((&mut log_fn) as &mut dyn FnMut(&mut gui::Context)),
 	]);
-	pamphlet.advance(0, 10);
-	pamphlet.label("Options", font);
-	pamphlet.label("- Settings", font);
-	pamphlet.label("- Escape", font);
-	pamphlet.label("- Quit", font);
 }
 
 fn get_chain_border(
