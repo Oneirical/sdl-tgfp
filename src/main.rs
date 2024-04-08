@@ -3,6 +3,7 @@ use esprit2::prelude::*;
 use esprit2::world::CharacterRef;
 use sdl2::render::Texture;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
+use std::f32::consts::PI;
 use std::process::exit;
 use tracing::*;
 use uuid::Uuid;
@@ -133,7 +134,7 @@ pub fn main() {
 	};
 	world_manager.characters.push(CharacterRef::new(player));
 	world_manager.characters.push(CharacterRef::new(ally));
-	world_manager.apply_vault(1, 1, resources.get_vault("example").unwrap(), &resources);
+	world_manager.apply_vault(0, 0, resources.get_vault("example").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
 	let font = ttf_context
 		.load_font_from_rwops(
@@ -209,13 +210,13 @@ pub fn main() {
 		// Configure world viewport.
 		let window_size = canvas.window().size();
 		canvas.set_viewport(Rect::new(
-			0,
-			0,
-			window_size.0 - options.ui.pamphlet_width,
-			window_size.1 - options.ui.console_height,
+			options.ui.left_pamphlet_width as i32 + options.ui.padding as i32,
+			options.ui.padding as i32,
+			window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2,
+			window_size.1 - options.ui.console_height - options.ui.padding * 2,
 		));
 		global_time = (global_time + 1) % 255;
-		canvas.set_draw_color(Color::RGB(global_time, 64, 255 - global_time));
+		canvas.set_draw_color(Color::BLUE);
 		canvas
 			.fill_rect(Rect::new(0, 0, window_size.0, window_size.1))
 			.unwrap();
@@ -226,7 +227,7 @@ pub fn main() {
 			for (y, tile) in col.enumerate() {
 				if *tile == floor::Tile::Wall {
 					canvas
-						.fill_rect(Rect::new((x as i32) * 64, (y as i32) * 64, 64, 64))
+						.fill_rect(Rect::new((x as i32) * options.ui.tile_size as i32, (y as i32) * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size))
 						.unwrap();
 				}
 			}
@@ -238,7 +239,7 @@ pub fn main() {
 				.copy(
 					sleep_texture,
 					None,
-					Some(Rect::new(character.x * 64, character.y * 64, 64, 64)),
+					Some(Rect::new(character.x * options.ui.tile_size as i32, character.y * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size)),
 				)
 				.unwrap();
 		}
@@ -282,6 +283,29 @@ fn pamphlet(
 	resources: &ResourceManager<'_>,
 	soul_jar: &mut SoulJar<'_>,
 ) {
+	let mut left_pamphlet = gui::Context::new(
+		canvas,
+		Rect::new(
+			0,
+			0,
+			options.ui.left_pamphlet_width,
+			window_size.1,
+		),
+	);
+	let mut minimap_fn = |left_pamphlet: &mut gui::Context| {
+		let chains = get_chain_border(6,window_size.1 as usize / 16 - 1);
+  		let mut chains = chains.iter().peekable();
+		left_pamphlet.horizontal();
+		while chains.peek().is_some() {
+			if let Some(chain) = chains.next() {
+				left_pamphlet.set((chain.position.0 * 64.) as i32, (chain.position.1 * 32.) as i32);
+				left_pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
+			}
+		}
+	};
+	left_pamphlet.hsplit(&mut [
+		Some((&mut minimap_fn) as &mut dyn FnMut(&mut gui::Context)),
+	]);
 	let mut pamphlet = gui::Context::new(
 		canvas,
 		Rect::new(
@@ -436,4 +460,75 @@ fn pamphlet(
 	pamphlet.label("- Settings", font);
 	pamphlet.label("- Escape", font);
 	pamphlet.label("- Quit", font);
+}
+
+fn get_chain_border(
+    width: usize,
+    height: usize,
+) -> Vec<ChainIcon> {
+	let offset = (width as f32 / 2., height as f32 / 2.);
+    let points = (0..width).flat_map(|x| (0..height).map(move |y| (x, y)));
+    let border_points = points.filter(|&(x, y)| x == 0 || y == 0 || x == width - 1 || y == height - 1);
+    let chain_icons = border_points.map(|(x, y)| {
+        let chain = match (x, y) {
+            (0, 0) => ChainType::TopLeft,
+            (0, y) if y == height - 1 => ChainType::BotLeft,
+            (x, 0) if x == width - 1 => ChainType::TopRight,
+            (x, y) if x == width - 1 && y == height - 1 => ChainType::BotRight,
+            _ => match (x, y) {
+                (0, _) => ChainType::Left,
+                (x, _) if x == width - 1 => ChainType::Right,
+                (_, 0) => ChainType::Top,
+                _ => ChainType::Bot,
+            },
+        };
+
+        let sprite = if [ChainType::TopLeft, ChainType::TopRight, ChainType::BotLeft, ChainType::BotRight].contains(&chain) {
+            "corner_chain".into()
+        } else {
+            "lateral_chain".into()
+        };
+
+        let rotation = match chain {
+            ChainType::TopLeft => 0.,
+            ChainType::BotLeft => 3. * PI / 2.,
+            ChainType::TopRight => PI / 2.,
+            ChainType::BotRight => PI,
+            ChainType::Left => 0.,
+            ChainType::Right => PI,
+            ChainType::Top => PI / 2.,
+            ChainType::Bot => 3. * PI / 2.,
+            _ => panic!("Wrong chain type!"),
+        };
+
+        ChainIcon {
+            sprite,
+            rotation,
+            position: ((x as f32 - width as f32 / 2. + offset.0) / 2., (y as f32 - height as f32 / 2. + offset.1) / 2.),
+        }
+    });
+    chain_icons.collect()
+}
+
+
+
+#[derive(PartialEq)]
+enum ChainType{
+    TopLeft,
+    TopRight,
+    BotLeft,
+    BotRight,
+    Top,
+    Right,
+    Left,
+    Bot,
+    EndLeft,
+    EndRight,
+}
+
+#[derive(Debug)]
+struct ChainIcon{
+    sprite: String,
+    rotation: f32,
+    position: (f32, f32)
 }

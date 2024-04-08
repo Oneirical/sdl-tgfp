@@ -1,6 +1,9 @@
 [ui]
 pamphlet_width = 400
-console_height = 200
+console_height = 0
+left_pamphlet_width = 200
+tile_size = 32
+padding = 10
 
 [controls]
 left = [104, 1073741904, 1073741916]

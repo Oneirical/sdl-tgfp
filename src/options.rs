@@ -54,7 +54,10 @@ impl Options {
 pub struct UserInterface {
 	pub pamphlet_width: u32,
 	pub console_height: u32,
+	pub left_pamphlet_width: u32,
 	pub font_size: u16,
+	pub padding: u32,
+	pub tile_size: u32,
 }
 
 impl Default for UserInterface {
@@ -63,6 +66,9 @@ impl Default for UserInterface {
 			pamphlet_width: 400,
 			console_height: 200,
 			font_size: 18,
+			left_pamphlet_width: 200,
+			padding: 10,
+			tile_size: 32,
 		}
 	}
 }

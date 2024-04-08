@@ -34,6 +34,11 @@ impl<'canvas> Context<'canvas> {
 		}
 	}
 
+	pub fn set(&mut self, x: i32, y: i32) {
+		self.x = x;
+		self.y = y;
+	}
+
 	pub fn advance(&mut self, width: u32, height: u32) {
 		let (width, height) = (width as i32, height as i32);
 		match self.orientation {
@@ -146,6 +151,23 @@ impl<'canvas> Context<'canvas> {
 				texture,
 				None,
 				Some(Rect::new(self.x, self.y, width, height)),
+			)
+			.unwrap();
+		self.advance(width, height)
+	}
+
+	pub fn htexture_ex(&mut self, texture: &Texture, width: u32, angle: f64) {
+		let query = texture.query();
+		let height = width / query.width * query.height;
+		self.canvas
+			.copy_ex(
+				texture,
+				None,
+				Some(Rect::new(self.x, self.y, width, height)),
+				angle,
+				None,
+				false,
+				false,
 			)
 			.unwrap();
 		self.advance(width, height)
