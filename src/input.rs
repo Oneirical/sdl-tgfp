@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use sdl2::{
 	event::Event,
-	keyboard::{Keycode, Scancode},
+	keyboard::Scancode,
 };
 
 pub enum Mode {

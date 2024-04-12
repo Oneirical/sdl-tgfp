@@ -1,7 +1,5 @@
 use crate::character::OrdDir;
-use crate::nouns::StrExt;
 use crate::prelude::*;
-use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::cell::RefCell;
 use uuid::Uuid;
 
@@ -85,7 +83,7 @@ impl Manager {
 	}
 
 	pub fn apply_vault(&mut self, x: i32, y: i32, vault: &Vault, resources: &ResourceManager) {
-		self.current_floor.blit_vault(x as usize, y as usize, vault);
+		self.current_floor.blit_vault(y as usize, x as usize, vault); // Weird swapping. To check when making Pieces and Tiles the same thing.
 		for (xoff, yoff, sheet_name) in &vault.characters {
 			let piece = character::Piece {
 				x: x + xoff,
@@ -179,11 +177,11 @@ impl Manager {
 		y: i32
 	) -> Result<MovementResult, MovementError> {
 		use crate::floor::Tile;
-		// There's a really annoying phenomenon in Pokémon Mystery Dungeon where you can't hit ghosts that are inside of walls.
-		// I think that this is super lame, so the attack check comes before any movement.
-		if let Some(target_ref) = self.get_character_at(x, y) {
+
+		if self.get_character_at(x, y).is_some() { // The Some can be unpacked here if we want to check for collisions.
 			return Err(MovementError::HitWall);
 		}
+
 		let tile = self.current_floor.map.get(y, x);
 		match tile {
 			Some(Tile::Floor) => {

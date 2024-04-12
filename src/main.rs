@@ -1,3 +1,4 @@
+use esprit2::floor::{WORLD_COLS, WORLD_ROWS};
 use esprit2::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use esprit2::prelude::*;
 use esprit2::world::CharacterRef;
@@ -100,7 +101,7 @@ pub fn main() {
 	};
 	world_manager.characters.push(CharacterRef::new(player));
 	//world_manager.characters.push(CharacterRef::new(ally));
-	world_manager.apply_vault(0, 0, resources.get_vault("example").unwrap(), &resources);
+	world_manager.apply_vault(0, 11, resources.get_vault("example").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
 	let font = ttf_context
 		.load_font_from_rwops(
@@ -213,9 +214,13 @@ pub fn main() {
 		for (x, col) in world_manager.current_floor.map.iter_cols().enumerate() {
 			for (y, tile) in col.enumerate() {
 				if *tile == floor::Tile::Wall {
-					canvas
-						.fill_rect(Rect::new((x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + 10, (y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + 32, options.ui.tile_size, options.ui.tile_size))
-						.unwrap();
+					let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+					let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
+					for (off_x, off_y) in areas {
+						canvas
+							.fill_rect(Rect::new((off_x + x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, (off_y + y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size))
+							.unwrap();
+					}
 				}
 			}
 		}

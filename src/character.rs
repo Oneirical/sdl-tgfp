@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::rc::Rc;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -15,7 +14,6 @@ pub struct Piece {
 
 impl Piece {
 	pub fn new(sheet: Sheet, resources: &ResourceManager) -> Self {
-
 		Self {
 			id: Uuid::new_v4(),
 			sheet,
