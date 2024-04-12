@@ -2,6 +2,9 @@ use grid::Grid;
 
 use crate::vault::Vault;
 
+const WORLD_ROWS: usize = 120;
+const WORLD_COLS: usize = 45;
+
 // Keeping this very light is probably a good idea.
 // Decorations, like statues and fountains and such, are sporadic and should be stored seperately.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -21,7 +24,7 @@ impl Default for Floor {
 		Self {
 			// TODO: Decide default grid size.
 			// 32x32 is ¼ the size of Esprit 1 (64x64)
-			map: Grid::init(32, 32, Tile::Floor),
+			map: Grid::init(WORLD_ROWS, WORLD_COLS, Tile::Floor),
 		}
 	}
 }

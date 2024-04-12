@@ -164,14 +164,21 @@ impl Manager {
 		character_ref: &CharacterRef,
 		dir: OrdDir,
 	) -> Result<MovementResult, MovementError> {
-		use crate::floor::Tile;
-
-		let (x, y) = {
+		let (dest_x, dest_y) = {
 			let (x, y) = dir.as_offset();
 			let character = character_ref.borrow();
 			(character.x + x, character.y + y)
 		};
+		self.teleport_piece(character_ref, dest_x, dest_y)
+	}
 
+	pub fn teleport_piece(
+		&self,
+		character_ref: &CharacterRef,
+		x: i32,
+		y: i32
+	) -> Result<MovementResult, MovementError> {
+		use crate::floor::Tile;
 		// There's a really annoying phenomenon in Pokémon Mystery Dungeon where you can't hit ghosts that are inside of walls.
 		// I think that this is super lame, so the attack check comes before any movement.
 		if let Some(target_ref) = self.get_character_at(x, y) {
@@ -189,5 +196,6 @@ impl Manager {
 			Some(Tile::Wall) => Err(MovementError::HitWall),
 			None => Err(MovementError::HitVoid),
 		}
+		
 	}
 }
