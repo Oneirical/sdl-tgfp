@@ -184,7 +184,6 @@ impl Manager {
 		if let Some(target_ref) = self.get_character_at(x, y) {
 			return Err(MovementError::HitWall);
 		}
-
 		let tile = self.current_floor.map.get(y, x);
 		match tile {
 			Some(Tile::Floor) => {
@@ -194,8 +193,13 @@ impl Manager {
 				Ok(MovementResult::Move)
 			}
 			Some(Tile::Wall) => Err(MovementError::HitWall),
-			None => Err(MovementError::HitVoid),
+			None => {
+				use crate::floor::WORLD_COLS;
+				use crate::floor::WORLD_ROWS;
+				let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+				let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
+				self.teleport_piece(character_ref, wrap_x, wrap_y)
+			},
 		}
-		
 	}
 }

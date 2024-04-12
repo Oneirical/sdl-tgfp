@@ -2,8 +2,8 @@ use grid::Grid;
 
 use crate::vault::Vault;
 
-const WORLD_ROWS: usize = 120;
-const WORLD_COLS: usize = 45;
+pub const WORLD_ROWS: usize = 16;
+pub const WORLD_COLS: usize = 16;
 
 // Keeping this very light is probably a good idea.
 // Decorations, like statues and fountains and such, are sporadic and should be stored seperately.
