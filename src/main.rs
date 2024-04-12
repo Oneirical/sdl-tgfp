@@ -103,6 +103,7 @@ pub fn main() {
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(0, 11, resources.get_vault("example").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
+	let spritesheet = resources.get_texture("spritesheet");
 	let font = ttf_context
 		.load_font_from_rwops(
 			RWops::from_bytes(include_bytes!(
@@ -202,10 +203,12 @@ pub fn main() {
 			} else {
 				(0, 0)
 			};
+			let texture_x = character.sheet.texture_id * 16;
+			let source_rect = Rect::new(texture_x, 0, 16, 16);
 			canvas
 				.copy(
-					sleep_texture,
-					None,
+					&spritesheet,
+					Some(source_rect),
 					Some(Rect::new(x, y, options.ui.tile_size, options.ui.tile_size)),
 				)
 				.unwrap();
@@ -217,9 +220,15 @@ pub fn main() {
 					let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
 					let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
 					for (off_x, off_y) in areas {
-						canvas
-							.fill_rect(Rect::new((off_x + x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, (off_y + y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, options.ui.tile_size, options.ui.tile_size))
-							.unwrap();
+						let source_rect = Rect::new(48, 0, 16, 16);
+						canvas.copy(&spritesheet, Some(source_rect), Some(
+							Rect::new(
+								(off_x + x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
+								(off_y + y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
+								options.ui.tile_size,
+								options.ui.tile_size
+							)
+						)).unwrap();
 					}
 				}
 			}

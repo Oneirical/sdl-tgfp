@@ -69,6 +69,7 @@ pub struct Sheet {
 	pub stats: Stats,
 	pub skillset: spell::Skillset,
 	pub speed: Aut,
+	pub texture_id: i32,
 
 	pub attacks: Vec<String>,
 	pub spells: Vec<String>,

@@ -2,6 +2,7 @@ level = 1
 attacks = ["scratch"]
 spells = []
 speed = 12
+texture_id = 0
 
 [nouns]
 name = "Aris"

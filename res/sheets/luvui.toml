@@ -2,6 +2,7 @@ level = 1
 spells = ["magic_missile"]
 attacks = ["scratch", "bite"]
 speed = 12
+texture_id = 0
 
 [nouns]
 name = "Luvui"
