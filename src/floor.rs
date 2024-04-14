@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use grid::Grid;
 
-use crate::{character::Piece, vault::Vault};
+use crate::{spell::Species, vault::Vault};
 
 pub const WORLD_ROWS: usize = 16;
 pub const WORLD_COLS: usize = 16;
@@ -16,16 +16,11 @@ pub enum Tile {
 	Wall,
 }
 
-pub enum TileContents {
-	Single(Piece),
-	Cramped(Vec<Piece>),
+pub struct SpeciesList {
+	pub map: HashMap<Species, Vec<u32>>
 }
 
-pub struct Playzone {
-	pub map: HashMap<(i32, i32), TileContents>
-}
-
-impl Default for Playzone {
+impl Default for SpeciesList {
 	fn default() -> Self {
 		Self {
 			map: HashMap::new(),

@@ -85,6 +85,7 @@ pub fn main() {
 	];
 	let player = character::Piece {
 		player_controlled: true,
+		species: spell::Species::Terminal,
 		..character::Piece::new(party[0].1.clone(), &resources)
 	};
 	let mut world_manager = world::Manager {

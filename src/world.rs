@@ -3,6 +3,8 @@ use crate::prelude::*;
 use std::cell::RefCell;
 use uuid::Uuid;
 
+use self::spell::Species;
+
 const DEFAULT_ATTACK_MESSAGE: &str = "{self_Address} attacked {target_indirect}";
 
 pub type CharacterRef = RefCell<character::Piece>;
@@ -79,6 +81,13 @@ impl Manager {
 		self.characters.iter().find(|p| {
 			let p = p.borrow();
 			p.x == x && p.y == y
+		})
+	}
+
+	pub fn get_characters_of_species(&self, species: Species) -> impl Iterator<Item = &CharacterRef> {
+		self.characters.iter().filter(move |p| {
+			let p = p.borrow();
+			p.species == species
 		})
 	}
 

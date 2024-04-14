@@ -1,7 +1,0 @@
-name = "Magic Missile"
-icon = "magic_missile"
-
-energy = "Positive"
-location = "External"
-
-level = 1
