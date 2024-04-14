@@ -48,7 +48,7 @@ pub enum Species {
 	WorldStem,
 }
 
-fn process_axioms(
+pub fn process_axioms(
 	axiom_grid: Vec<PlantAxiom>,
 	pulse: (i32, i32),
 	manager: &Manager,
@@ -96,6 +96,7 @@ fn process_axioms(
 					}).collect();
 					let b_caster = caster.borrow();
 					let (cx, cy) = (b_caster.x, b_caster.y);
+					drop(b_caster);
 					if let Some((x,y)) = find_closest_coordinate(&targets, (cx, cy)) {
 						let _ = manager.teleport_piece(caster, x, y);
 					}
