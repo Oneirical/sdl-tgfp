@@ -177,11 +177,13 @@ pub fn main() {
 
 		// Configure world viewport.
 		let window_size = canvas.window().size();
+		let side_dim = window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2;
+		let tiles_in_viewport = side_dim / options.ui.tile_size;
 		canvas.set_viewport(Rect::new(
 			options.ui.left_pamphlet_width as i32 + options.ui.padding as i32,
 			options.ui.padding as i32,
-			window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2,
-			window_size.1 - options.ui.console_height - options.ui.padding * 2,
+			side_dim,
+			side_dim,
 		));
 		global_time = (global_time + 1) % 255;
 		canvas.set_draw_color(Color::BLUE);
@@ -199,7 +201,7 @@ pub fn main() {
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
 			let (x, y) = if character.player_controlled {
 				curr_xy = (character.x, character.y);
-				(wi_width as i32 / 2, wi_height as i32 / 2)
+				((tiles_in_viewport / 2) * options.ui.tile_size, (tiles_in_viewport / 2 - 1) * options.ui.tile_size)
 			} else {
 				(0, 0)
 			};
@@ -209,7 +211,7 @@ pub fn main() {
 				.copy(
 					&spritesheet,
 					Some(source_rect),
-					Some(Rect::new(x, y, options.ui.tile_size, options.ui.tile_size)),
+					Some(Rect::new(x as i32, y as i32, options.ui.tile_size, options.ui.tile_size)),
 				)
 				.unwrap();
 		}
