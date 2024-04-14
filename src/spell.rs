@@ -1,8 +1,6 @@
-use sdl2::keyboard::Scancode;
+use sdl2::keyboard::Keycode;
 
 use crate::{character::{OrdDir, Piece}, world::Manager};
-use tracing::error;
-
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Spell {
@@ -20,7 +18,7 @@ pub struct PlantAxiom {
 
 pub enum Axiom {
 	// Contingencies
-	Keypress(Scancode),
+	Keypress(Keycode),
 	RadioReceiver(Range),
 
 	// Anointers
@@ -49,7 +47,7 @@ pub enum Species {
 }
 
 pub fn process_axioms(
-	axiom_grid: Vec<PlantAxiom>,
+	axiom_grid: &Vec<PlantAxiom>,
 	pulse: (i32, i32),
 	manager: &Manager,
 ) {

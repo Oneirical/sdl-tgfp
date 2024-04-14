@@ -1,10 +1,10 @@
 use crate::{prelude::*, spell::PlantAxiom};
 use sdl2::{
 	event::Event,
-	keyboard::Scancode,
+	keyboard::{Keycode, Scancode},
 };
 
-use self::spell::process_axioms;
+use self::spell::{process_axioms, Axiom};
 
 pub enum Mode {
 	Normal,
@@ -31,51 +31,39 @@ pub fn world(
 				keycode: Some(keycode),
 				..
 			} => {
-				//let mut next_character = world_manager.next_character().borrow_mut();
-				if true {//next_character.player_controlled {
-					match *mode {
-						Mode::Normal => {
-							// This will need to be refactored.
-							if options.controls.left.contains(&(keycode as i32)) {
-								let forced_axioms: Vec<PlantAxiom> = vec![
-									PlantAxiom {
-										x: 0,
-										axiom: spell::Axiom::SelectSpecies(spell::Species::Terminal),
-										y: 0,
-									},
-									PlantAxiom {
-										x: 1,
-										axiom: spell::Axiom::CardinalTargeter(character::OrdDir::Left),
-										y: 0,
-									},
-									PlantAxiom {
-										x: 2,
-										axiom: spell::Axiom::Teleport,
-										y: 0,
-									}
-								];
-								process_axioms(forced_axioms, (0,0), &world_manager);
-								//next_character.next_action =
-								//	Some(character::Action::Move(character::OrdDir::Left));
+				let forced_axioms: Vec<PlantAxiom> = vec![
+					PlantAxiom {
+						x: 0,
+						axiom: spell::Axiom::Keypress(Keycode::Left),
+						y: 1,
+					},
+					PlantAxiom {
+						x: 0,
+						axiom: spell::Axiom::SelectSpecies(spell::Species::Terminal),
+						y: 0,
+					},
+					PlantAxiom {
+						x: 1,
+						axiom: spell::Axiom::CardinalTargeter(character::OrdDir::Left),
+						y: 0,
+					},
+					PlantAxiom {
+						x: 2,
+						axiom: spell::Axiom::Teleport,
+						y: 0,
+					}
+				];
+				for axiom in &forced_axioms {
+					match axiom.axiom {
+						Axiom::Keypress(key) => {
+							if key == keycode {
+								process_axioms(&forced_axioms, (axiom.x, axiom.y), &world_manager);
 							}
-							/*
-							if options.controls.right.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::Right));
-							}
-							if options.controls.up.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::Up));
-							}
-							if options.controls.down.contains(&(keycode as i32)) {
-								next_character.next_action =
-									Some(character::Action::Move(character::OrdDir::Down));
-							}
-							*/
-							//drop(next_character);
 						}
+						_ => ()
 					}
 				}
+				//let mut next_character = world_manager.next_character().borrow_mut();
 			}
 			_ => {}
 		}
