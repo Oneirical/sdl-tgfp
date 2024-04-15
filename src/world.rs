@@ -3,7 +3,7 @@ use crate::prelude::*;
 use std::cell::RefCell;
 use uuid::Uuid;
 
-use self::spell::Species;
+use self::spell::{PlantAxiom, Species};
 
 const DEFAULT_ATTACK_MESSAGE: &str = "{self_Address} attacked {target_indirect}";
 
@@ -20,6 +20,7 @@ pub struct Manager {
 	pub current_floor: Floor,
 	// It might be useful to sort this by remaining action delay to make selecting the next character easier.
 	pub characters: Vec<CharacterRef>,
+	pub axioms: Vec<PlantAxiom>,
 	pub items: Vec<item::Piece>,
 	/// Always point to the party's pieces, even across floors.
 	/// When exiting a dungeon, these sheets will be saved to a party struct.

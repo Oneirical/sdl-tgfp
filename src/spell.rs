@@ -5,17 +5,20 @@ use crate::{character::{OrdDir, Piece}, world::Manager};
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Spell {
 	pub name: String,
-	pub icon: String,
+	pub icon: i32,
 	pub lore: String,
 	pub description: String,
 }
 
+#[derive(Clone, Debug)]
 pub struct PlantAxiom {
 	pub axiom: Axiom,
 	pub x: i32,
 	pub y: i32,
+	pub info: Spell,
 }
 
+#[derive(Clone, Debug)]
 pub enum Axiom {
 	// Contingencies
 	Keypress(Keycode),
@@ -32,6 +35,7 @@ pub enum Axiom {
 	RadioBroadcaster(Range),
 }
 
+#[derive(Clone, Debug)]
 pub enum Range {
 	Targeted,
 	Contained,

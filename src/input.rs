@@ -32,26 +32,7 @@ pub fn world(
 				..
 			} => {
 				let forced_axioms: Vec<PlantAxiom> = vec![
-					PlantAxiom {
-						x: 0,
-						axiom: spell::Axiom::Keypress(Keycode::Left),
-						y: 1,
-					},
-					PlantAxiom {
-						x: 0,
-						axiom: spell::Axiom::SelectSpecies(spell::Species::Terminal),
-						y: 0,
-					},
-					PlantAxiom {
-						x: 1,
-						axiom: spell::Axiom::CardinalTargeter(character::OrdDir::Left),
-						y: 0,
-					},
-					PlantAxiom {
-						x: 2,
-						axiom: spell::Axiom::Teleport,
-						y: 0,
-					}
+
 				];
 				for axiom in &forced_axioms {
 					match axiom.axiom {

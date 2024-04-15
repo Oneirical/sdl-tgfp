@@ -1,7 +1,9 @@
 use esprit2::floor::{WORLD_COLS, WORLD_ROWS};
 use esprit2::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use esprit2::prelude::*;
+use esprit2::spell::PlantAxiom;
 use esprit2::world::CharacterRef;
+use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
 use std::f32::consts::PI;
@@ -98,9 +100,37 @@ pub fn main() {
 		current_level: world::Level::default(),
 		current_floor: Floor::default(),
 		characters: Vec::new(),
+		axioms: Vec::new(),
 		items: Vec::new(),
 	};
 	world_manager.characters.push(CharacterRef::new(player));
+	let mut forced_axioms: Vec<PlantAxiom> = vec![
+		PlantAxiom {
+			x: 0,
+			axiom: spell::Axiom::Keypress(Keycode::Left),
+			y: 1,
+			info: resources.get_spell("clone").unwrap().clone()
+		},
+		PlantAxiom {
+			x: 0,
+			axiom: spell::Axiom::SelectSpecies(spell::Species::Terminal),
+			y: 0,
+			info: resources.get_spell("clone").unwrap().clone()
+		},
+		PlantAxiom {
+			x: 1,
+			axiom: spell::Axiom::CardinalTargeter(character::OrdDir::Left),
+			y: 0,
+			info: resources.get_spell("sunlight").unwrap().clone()
+		},
+		PlantAxiom {
+			x: 2,
+			axiom: spell::Axiom::Teleport,
+			y: 0,
+			info: resources.get_spell("sunlight").unwrap().clone()
+		}
+	];
+	world_manager.axioms.append(&mut forced_axioms);
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(0, 11, resources.get_vault("example").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
@@ -235,6 +265,18 @@ pub fn main() {
 					}
 				}
 			}
+		}
+
+		for axiom in world_manager.axioms.iter().map(|x| x) {
+			let texture_x = axiom.info.icon * 16;
+			let source_rect = Rect::new(texture_x, 0, 16, 16);
+			canvas
+				.copy(
+					&spritesheet,
+					Some(source_rect),
+					Some(Rect::new(axiom.x * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, axiom.y * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, options.ui.tile_size / 2, options.ui.tile_size / 2)),
+				)
+				.unwrap();
 		}
 
 		// Render User Interface
