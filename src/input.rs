@@ -31,10 +31,8 @@ pub fn world(
 				keycode: Some(keycode),
 				..
 			} => {
-				let forced_axioms: Vec<PlantAxiom> = vec![
-
-				];
-				for axiom in &forced_axioms {
+				let forced_axioms = &world_manager.axioms;
+				for axiom in forced_axioms {
 					match axiom.axiom {
 						Axiom::Keypress(key) => {
 							if key == keycode {

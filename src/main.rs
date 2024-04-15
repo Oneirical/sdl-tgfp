@@ -269,14 +269,19 @@ pub fn main() {
 
 		for axiom in world_manager.axioms.iter().map(|x| x) {
 			let texture_x = axiom.info.icon * 16;
-			let source_rect = Rect::new(texture_x, 0, 16, 16);
-			canvas
-				.copy(
-					&spritesheet,
-					Some(source_rect),
-					Some(Rect::new(axiom.x * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, axiom.y * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, options.ui.tile_size / 2, options.ui.tile_size / 2)),
-				)
-				.unwrap();
+			let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+			let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
+			for (off_x, off_y) in areas {
+				let source_rect = Rect::new(texture_x, 0, 16, 16);
+				canvas.copy(&spritesheet, Some(source_rect), Some(
+					Rect::new(
+						(off_x + axiom.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, 
+						(off_y + axiom.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, 
+						options.ui.tile_size / 2,
+						options.ui.tile_size / 2
+					)
+				)).unwrap();
+			}
 		}
 
 		// Render User Interface
