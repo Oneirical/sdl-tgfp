@@ -1,0 +1,8 @@
+[symbols."#"]
+Tile = "Wall"
+
+# Layout
+#^#V#<#>#
+ P P P P
+ NTS OTE
+  X   X

@@ -35,12 +35,25 @@ pub enum Axiom {
 	RadioBroadcaster(Range),
 }
 
+pub fn match_axiom_with_codename (
+	axiom: &Axiom
+) -> &str {
+	match axiom {
+		Axiom::Keypress(_) => "keypress",
+		Axiom::CardinalTargeter(_) => "cardinal_targeter",
+		Axiom::SelectSpecies(_) => "select_species",
+		Axiom::RadioBroadcaster(_) => "radio_broadcaster",
+		Axiom::RadioReceiver(_) => "radio_receiver",
+		Axiom::Teleport => "teleport",
+	}
+}
+
 #[derive(Clone, Debug)]
 pub enum Range {
-	Targeted,
-	Contained,
-	Local,
-	Global,
+	Targeted(String),
+	Contained(String),
+	Local(String),
+	Global(String),
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -104,9 +117,27 @@ pub fn process_axioms(
 					}
 				}
 			}
+			Axiom::RadioBroadcaster(output_range) => {
+				match output_range {
+					Range::Global(output_message) => {
+						for axiom in &manager.axioms {
+							if let Axiom::RadioReceiver(input_range) = &axiom.axiom {
+								let input_message = match input_range {
+									Range::Global(input_message) => input_message,
+									_ => todo!(),
+								};
+								if *output_message == *input_message {
+									process_axioms(axiom_grid, (axiom.x, axiom.y), manager);
+								}
+							}
+						}
+					}
+					_ => ()
+				}
+			}
 			_ => ()
 		}
-		for adjacency in [(0,-1),(-1,0), (1, 0), (0, 1)] {
+		for adjacency in [(0, 1), (1, 0), (-1,0), (0,-1)] {
 			let new_pulse = (current_pulse.0 + adjacency.0, current_pulse.1 + adjacency.1);
 			if !visited.contains(&new_pulse) {
 				pulse.push(new_pulse);

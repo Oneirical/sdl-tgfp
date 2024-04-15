@@ -31,12 +31,11 @@ pub fn world(
 				keycode: Some(keycode),
 				..
 			} => {
-				let forced_axioms = &world_manager.axioms;
-				for axiom in forced_axioms {
+				for axiom in &world_manager.axioms {
 					match axiom.axiom {
 						Axiom::Keypress(key) => {
 							if key == keycode {
-								process_axioms(&forced_axioms, (axiom.x, axiom.y), &world_manager);
+								process_axioms(&world_manager.axioms, (axiom.x, axiom.y), &world_manager);
 							}
 						}
 						_ => ()

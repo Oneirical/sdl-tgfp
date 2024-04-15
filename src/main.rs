@@ -104,35 +104,8 @@ pub fn main() {
 		items: Vec::new(),
 	};
 	world_manager.characters.push(CharacterRef::new(player));
-	let mut forced_axioms: Vec<PlantAxiom> = vec![
-		PlantAxiom {
-			x: 0,
-			axiom: spell::Axiom::Keypress(Keycode::Left),
-			y: 1,
-			info: resources.get_spell("clone").unwrap().clone()
-		},
-		PlantAxiom {
-			x: 0,
-			axiom: spell::Axiom::SelectSpecies(spell::Species::Terminal),
-			y: 0,
-			info: resources.get_spell("clone").unwrap().clone()
-		},
-		PlantAxiom {
-			x: 1,
-			axiom: spell::Axiom::CardinalTargeter(character::OrdDir::Left),
-			y: 0,
-			info: resources.get_spell("sunlight").unwrap().clone()
-		},
-		PlantAxiom {
-			x: 2,
-			axiom: spell::Axiom::Teleport,
-			y: 0,
-			info: resources.get_spell("sunlight").unwrap().clone()
-		}
-	];
-	world_manager.axioms.append(&mut forced_axioms);
 	//world_manager.characters.push(CharacterRef::new(ally));
-	world_manager.apply_vault(0, 11, resources.get_vault("example").unwrap(), &resources);
+	world_manager.apply_vault(0, 11, resources.get_vault("world_roots").unwrap(), &resources);
 	let sleep_texture = resources.get_texture("luvui_sleep");
 	let spritesheet = resources.get_texture("spritesheet");
 	let font = ttf_context
@@ -272,13 +245,13 @@ pub fn main() {
 			let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
 			let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
 			for (off_x, off_y) in areas {
-				let source_rect = Rect::new(texture_x, 0, 16, 16);
+				let source_rect = Rect::new(texture_x, 16, 16, 16);
 				canvas.copy(&spritesheet, Some(source_rect), Some(
 					Rect::new(
-						(off_x + axiom.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, 
-						(off_y + axiom.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32 + options.ui.tile_size as i32 / 4, 
-						options.ui.tile_size / 2,
-						options.ui.tile_size / 2
+						(off_x + axiom.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
+						(off_y + axiom.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
+						options.ui.tile_size,
+						options.ui.tile_size
 					)
 				)).unwrap();
 			}

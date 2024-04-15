@@ -3,7 +3,7 @@ use crate::prelude::*;
 use std::cell::RefCell;
 use uuid::Uuid;
 
-use self::spell::{PlantAxiom, Species};
+use self::spell::{match_axiom_with_codename, PlantAxiom, Species};
 
 const DEFAULT_ATTACK_MESSAGE: &str = "{self_Address} attacked {target_indirect}";
 
@@ -101,6 +101,16 @@ impl Manager {
 				..character::Piece::new(resources.get_sheet(sheet_name).unwrap().clone(), resources)
 			};
 			self.characters.push(RefCell::new(piece));
+		}
+
+		for (xoff, yoff, axiom) in &vault.axioms {
+			let plant_axiom = PlantAxiom {
+				x: x + xoff,
+				y: y + yoff,
+				axiom: axiom.clone(),
+				info: resources.get_spell(match_axiom_with_codename(axiom)).unwrap().clone()
+			};
+			self.axioms.push(plant_axiom);
 		}
 	}
 }
