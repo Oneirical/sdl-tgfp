@@ -1,4 +1,4 @@
-use crate::{prelude::*, spell::PlantAxiom};
+use crate::prelude::*;
 use sdl2::{
 	event::Event,
 	keyboard::{Keycode, Scancode},
@@ -16,8 +16,8 @@ pub struct Result {
 
 pub fn world(
 	event_pump: &mut sdl2::EventPump,
-	world_manager: &mut world::Manager,
-	mode: &mut Mode,
+	world_manager: &world::Manager,
+	mode: &Mode,
 	options: &Options,
 ) -> Result {
 	for event in event_pump.poll_iter() {
@@ -31,18 +31,11 @@ pub fn world(
 				keycode: Some(keycode),
 				..
 			} => {
-				for axiom in &world_manager.axioms {
-					match &axiom.axiom {
-						Species::Keypress(key) => {
-							if Keycode::from_name(&key).unwrap() == keycode {
-								process_axioms(
-									&world_manager.axioms,
-									(axiom.x, axiom.y),
-									&world_manager,
-								);
-							}
+				for axiom in &world_manager.characters {
+					if let Species::Keypress(key) = &axiom.borrow().species {
+						if Keycode::from_name(key).unwrap() == keycode {
+							process_axioms((axiom.borrow().x, axiom.borrow().y), world_manager);
 						}
-						_ => (),
 					}
 				}
 				//let mut next_character = world_manager.next_character().borrow_mut();

@@ -8,7 +8,7 @@ use std::{collections::HashMap, fs, path::Path};
 pub struct Vault {
 	pub width: usize,
 
-	pub characters: Vec<(i32, i32, String)>,
+	pub characters: Vec<(i32, i32, Species)>,
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -64,10 +64,10 @@ impl Vault {
 				match c {
 					' ' => continue,
 					// FIXME: Remove the sheet argument.
-					'#' => characters.push((x as i32, y as i32, "no one cares".to_owned())),
+					'#' => characters.push((x as i32, y as i32, Species::Wall)),
 					_ => {
 						if let Some(axiom) = axiom_map.get(&c) {
-							characters.push((x as i32, y as i32, "no one cares".to_owned()));
+							characters.push((x as i32, y as i32, axiom.clone()));
 						} else {
 							return Err(Error::UnexpectedSymbol(c));
 						}

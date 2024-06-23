@@ -3,9 +3,7 @@ use crate::prelude::*;
 use std::cell::RefCell;
 use uuid::Uuid;
 
-use self::spell::{match_axiom_with_codename, PlantAxiom, Species};
-
-const DEFAULT_ATTACK_MESSAGE: &str = "{self_Address} attacked {target_indirect}";
+use self::spell::Species;
 
 pub const WORLD_ROWS: usize = 16;
 pub const WORLD_COLS: usize = 16;
@@ -22,7 +20,6 @@ pub struct Manager {
 	pub current_level: Level,
 	// It might be useful to sort this by remaining action delay to make selecting the next character easier.
 	pub characters: Vec<CharacterRef>,
-	pub axioms: Vec<PlantAxiom>,
 	pub items: Vec<item::Piece>,
 	/// Always point to the party's pieces, even across floors.
 	/// When exiting a dungeon, these sheets will be saved to a party struct.
@@ -98,27 +95,15 @@ impl Manager {
 	}
 
 	pub fn apply_vault(&mut self, x: i32, y: i32, vault: &Vault, resources: &ResourceManager) {
-		for (xoff, yoff, sheet_name) in &vault.characters {
+		for (xoff, yoff, species) in &vault.characters {
 			let piece = character::Piece {
 				x: x + xoff,
 				y: y + yoff,
+				species: species.clone(),
 				..character::Piece::new(resources.get_sheet("luvui").unwrap().clone(), resources)
 			};
 			self.characters.push(RefCell::new(piece));
 		}
-
-		// for (xoff, yoff, axiom) in &vault.axioms {
-		// 	let plant_axiom = PlantAxiom {
-		// 		x: x + xoff,
-		// 		y: y + yoff,
-		// 		axiom: axiom.clone(),
-		// 		info: resources
-		// 			.get_spell(match_axiom_with_codename(axiom).unwrap())
-		// 			.unwrap()
-		// 			.clone(),
-		// 	};
-		// 	self.axioms.push(plant_axiom);
-		// }
 	}
 }
 
@@ -167,7 +152,7 @@ impl Manager {
 						} else {
 							colors.normal
 						},
-					)
+					);
 				}
 				Ok(_) => (),
 				Err(MovementError::HitWall) => {
@@ -206,17 +191,15 @@ impl Manager {
 		if self.get_character_at(x, y).is_some() {
 			// The Some can be unpacked here if we want to check for collisions.
 			Err(MovementError::HitWall)
+		} else if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
+			let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+			let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
+			self.teleport_piece(character_ref, wrap_x, wrap_y)
 		} else {
-			if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
-				let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-				let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
-				self.teleport_piece(character_ref, wrap_x, wrap_y)
-			} else {
-				let mut character = character_ref.borrow_mut();
-				character.x = x;
-				character.y = y;
-				Ok(MovementResult::Move)
-			}
+			let mut character = character_ref.borrow_mut();
+			character.x = x;
+			character.y = y;
+			Ok(MovementResult::Move)
 		}
 	}
 }

@@ -3,7 +3,7 @@ use sdl2::render::Texture;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
 use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use sdltgfp::prelude::*;
-use sdltgfp::spell::PlantAxiom;
+use sdltgfp::spell::match_axiom_with_codename;
 use sdltgfp::world::CharacterRef;
 use sdltgfp::world::{WORLD_COLS, WORLD_ROWS};
 use std::f32::consts::PI;
@@ -86,7 +86,6 @@ pub fn main() {
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
-		axioms: Vec::new(),
 		items: Vec::new(),
 	};
 	world_manager.characters.push(CharacterRef::new(player));
@@ -149,7 +148,7 @@ pub fn main() {
 			- options.ui.left_pamphlet_width
 			- options.ui.padding * 2;
 		// zoom_amount += if global_time % 10 == 0 { 1 } else { 0 };
-		let tiles_in_viewport = side_dim / (options.ui.tile_size) as u32;
+		let tiles_in_viewport = side_dim / (options.ui.tile_size);
 		canvas.set_viewport(Rect::new(
 			options.ui.left_pamphlet_width as i32 + options.ui.padding as i32,
 			options.ui.padding as i32,
@@ -199,17 +198,28 @@ pub fn main() {
 					(character.x - curr_xy.0
 						+ wi_width as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
 						* (options.ui.tile_size + zoom_amount) as i32,
-					(character.y as i32 - curr_xy.1
+					(character.y - curr_xy.1
 						+ wi_height as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
 						* (options.ui.tile_size + zoom_amount) as i32,
 				)
 			};
+			let mut texture_y = 0;
 			let texture_x = match character.species {
 				spell::Species::Wall => 3,
 				spell::Species::Terminal => 0,
-				_ => 1,
+				_ => {
+					// It could be an axiom.
+					let axiom_name = match_axiom_with_codename(&character.species);
+					if let Some(axiom_name) = axiom_name {
+						texture_y = 16;
+						resources.get_spell(axiom_name).unwrap().icon
+					} else {
+						// Fallback "missing texture" for unknown species.
+						1
+					}
+				}
 			} * 16;
-			let source_rect = Rect::new(texture_x, 0, 16, 16);
+			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
 			for (off_x, off_y) in areas {
 				if character.player_controlled && (off_x, off_y) != (0, 0) {
 					// Prevent the main character from being drawn multiple times for the "looping world" effect.
@@ -217,50 +227,13 @@ pub fn main() {
 				}
 				canvas
 					.copy(
-						&spritesheet,
+						spritesheet,
 						Some(source_rect),
 						Some(Rect::new(
 							off_x + x,
 							off_y + y,
-							(options.ui.tile_size) as u32,
-							(options.ui.tile_size) as u32,
-						)),
-					)
-					.unwrap();
-			}
-		}
-
-		for axiom in world_manager.axioms.iter().map(|x| x) {
-			let texture_x = axiom.info.icon * 16;
-			let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-			let areas = [
-				(0, 0),
-				(world_width, 0),
-				(-world_width, 0),
-				(0, world_height),
-				(0, -world_height),
-				(world_width, world_height),
-				(-world_width, world_height),
-				(world_width, -world_height),
-				(-world_width, -world_height),
-			];
-			for (off_x, off_y) in areas {
-				let source_rect = Rect::new(texture_x, 16, 16, 16);
-				canvas
-					.copy(
-						&spritesheet,
-						Some(source_rect),
-						Some(Rect::new(
-							(off_x + axiom.x - curr_xy.0
-								+ wi_width as i32
-									/ 2 / (options.ui.tile_size + zoom_amount) as i32)
-								* (options.ui.tile_size + zoom_amount) as i32,
-							(off_y + axiom.y - curr_xy.1
-								+ wi_height as i32
-									/ 2 / (options.ui.tile_size + zoom_amount) as i32)
-								* (options.ui.tile_size + zoom_amount) as i32,
-							(options.ui.tile_size + zoom_amount) as u32,
-							(options.ui.tile_size + zoom_amount) as u32,
+							options.ui.tile_size,
+							options.ui.tile_size,
 						)),
 					)
 					.unwrap();
