@@ -4,7 +4,7 @@ use sdl2::{
 	keyboard::{Keycode, Scancode},
 };
 
-use self::spell::{process_axioms, Axiom};
+use self::spell::{process_axioms, Species};
 
 pub enum Mode {
 	Normal,
@@ -32,13 +32,17 @@ pub fn world(
 				..
 			} => {
 				for axiom in &world_manager.axioms {
-					match axiom.axiom {
-						Axiom::Keypress(key) => {
-							if key == keycode {
-								process_axioms(&world_manager.axioms, (axiom.x, axiom.y), &world_manager);
+					match &axiom.axiom {
+						Species::Keypress(key) => {
+							if Keycode::from_name(&key).unwrap() == keycode {
+								process_axioms(
+									&world_manager.axioms,
+									(axiom.x, axiom.y),
+									&world_manager,
+								);
 							}
 						}
-						_ => ()
+						_ => (),
 					}
 				}
 				//let mut next_character = world_manager.next_character().borrow_mut();

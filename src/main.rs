@@ -1,11 +1,11 @@
-use esprit2::floor::{WORLD_COLS, WORLD_ROWS};
-use esprit2::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
-use esprit2::prelude::*;
-use esprit2::spell::PlantAxiom;
-use esprit2::world::CharacterRef;
 use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
+use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
+use sdltgfp::prelude::*;
+use sdltgfp::spell::PlantAxiom;
+use sdltgfp::world::CharacterRef;
+use sdltgfp::world::{WORLD_COLS, WORLD_ROWS};
 use std::f32::consts::PI;
 use std::process::exit;
 use tracing::*;
@@ -24,19 +24,6 @@ fn update_delta(
 				    / 1000.0
 }
 
-struct SoulJar<'texture> {
-	souls: Vec<Soul>,
-	light_texture: Texture<'texture>,
-}
-
-impl SoulJar<'_> {
-	fn tick(&mut self, delta: f32) {
-		for i in &mut self.souls {
-			i.tick(delta);
-		}
-	}
-}
-
 pub fn main() {
 	// SDL initialization.
 	let sdl_context = sdl2::init().unwrap();
@@ -44,7 +31,7 @@ pub fn main() {
 	let video_subsystem = sdl_context.video().unwrap();
 	let timer_subsystem = sdl_context.timer().unwrap();
 	let window = video_subsystem
-		.window("Esprit 2", 1280, 720)
+		.window("SDL TGFP", 1280, 720)
 		.resizable()
 		.position_centered()
 		.build()
@@ -98,15 +85,18 @@ pub fn main() {
 		console: Console::default(),
 
 		current_level: world::Level::default(),
-		current_floor: Floor::default(),
 		characters: Vec::new(),
 		axioms: Vec::new(),
 		items: Vec::new(),
 	};
 	world_manager.characters.push(CharacterRef::new(player));
 	//world_manager.characters.push(CharacterRef::new(ally));
-	world_manager.apply_vault(0, 11, resources.get_vault("world_roots").unwrap(), &resources);
-	let sleep_texture = resources.get_texture("luvui_sleep");
+	world_manager.apply_vault(
+		0,
+		11,
+		resources.get_vault("world_roots").unwrap(),
+		&resources,
+	);
 	let spritesheet = resources.get_texture("spritesheet");
 	let font = ttf_context
 		.load_font_from_rwops(
@@ -118,39 +108,13 @@ pub fn main() {
 		)
 		.unwrap();
 
-	let mut soul_jar = SoulJar {
-		souls: vec![
-			Soul::new(Color::RED),
-			Soul::new(Color::YELLOW),
-			Soul::new(Color::BLUE),
-			Soul::new(Color::GREEN),
-			Soul::new(Color::CYAN),
-			Soul::new(Color::RGB(255, 128, 0)),
-			Soul::new(Color::WHITE),
-			Soul::new(Color::RGB(255, 0, 255)),
-			Soul::new(Color::RGB(255, 128, 128)),
-		],
-		light_texture: resources.get_owned_texture("light").unwrap(),
-	};
-
 	// Print some debug messages to test the console.
 	world_manager.console.print("Hello, world!");
-	world_manager.console.print("Luvui scratches the cat.");
-	world_manager.console.print_defeat("The cat ran away.");
-	world_manager.console.print("Luvui casts Magic Missile.");
-	world_manager
-		.console
-		.print("Her magic missile strikes the cat!");
-	world_manager.console.print("The cat scratches Aris");
-	world_manager.console.print("Aris bites the cat");
-	world_manager.console.print_defeat("The cat scampered off.");
-	world_manager
-		.console
-		.print_special("Luvui's level increased to 2!");
 
 	// TODO: Display this on-screen.
 	let mut input_mode = input::Mode::Normal;
 	let mut global_time = 0;
+	let mut zoom_amount = 0;
 	loop {
 		// Input processing
 		if input::world(
@@ -171,7 +135,6 @@ pub fn main() {
 
 			world_manager.pop_action();
 			world_manager.console.update(delta);
-			soul_jar.tick(delta as f32);
 		}
 
 		// Rendering
@@ -181,15 +144,19 @@ pub fn main() {
 
 		// Configure world viewport.
 		let window_size = canvas.window().size();
-		let side_dim = window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2;
-		let tiles_in_viewport = side_dim / options.ui.tile_size;
+		let side_dim = window_size.0
+			- options.ui.pamphlet_width
+			- options.ui.left_pamphlet_width
+			- options.ui.padding * 2;
+		// zoom_amount += if global_time % 10 == 0 { 1 } else { 0 };
+		let tiles_in_viewport = side_dim / (options.ui.tile_size) as u32;
 		canvas.set_viewport(Rect::new(
 			options.ui.left_pamphlet_width as i32 + options.ui.padding as i32,
 			options.ui.padding as i32,
 			side_dim,
 			side_dim,
 		));
-		global_time = (global_time + 1) % 255;
+		global_time += 1;
 		canvas.set_draw_color(Color::BLUE);
 		canvas
 			.fill_rect(Rect::new(0, 0, window_size.0, window_size.1))
@@ -198,62 +165,105 @@ pub fn main() {
 		// Draw tilemap
 		canvas.set_draw_color(Color::WHITE);
 
-		let wi_width = window_size.0 - options.ui.pamphlet_width - options.ui.left_pamphlet_width - options.ui.padding * 2;
+		let wi_width = window_size.0
+			- options.ui.pamphlet_width
+			- options.ui.left_pamphlet_width
+			- options.ui.padding * 2;
 		let wi_height = window_size.1 - options.ui.console_height - options.ui.padding * 2;
-		let mut curr_xy = (0,0);
+		let mut curr_xy = (0, 0);
+		let (world_width, world_height) = (
+			(WORLD_COLS * options.ui.tile_size as usize) as i32,
+			(WORLD_ROWS * options.ui.tile_size as usize) as i32,
+		);
+		let areas = [
+			(0, 0),
+			(world_width, 0),
+			(-world_width, 0),
+			(0, world_height),
+			(0, -world_height),
+			(world_width, world_height),
+			(-world_width, world_height),
+			(world_width, -world_height),
+			(-world_width, -world_height),
+		];
 		// Draw characters
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
 			let (x, y) = if character.player_controlled {
 				curr_xy = (character.x, character.y);
-				((tiles_in_viewport / 2) * options.ui.tile_size, (tiles_in_viewport / 2 - 1) * options.ui.tile_size)
-			} else {
-				(0, 0)
-			};
-			let texture_x = character.sheet.texture_id * 16;
-			let source_rect = Rect::new(texture_x, 0, 16, 16);
-			canvas
-				.copy(
-					&spritesheet,
-					Some(source_rect),
-					Some(Rect::new(x as i32, y as i32, options.ui.tile_size, options.ui.tile_size)),
+				(
+					((tiles_in_viewport / 2) * (options.ui.tile_size)) as i32,
+					((tiles_in_viewport / 2 - 1) * (options.ui.tile_size)) as i32,
 				)
-				.unwrap();
-		}
-
-		for (x, col) in world_manager.current_floor.map.iter_cols().enumerate() {
-			for (y, tile) in col.enumerate() {
-				if *tile == floor::Tile::Wall {
-					let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-					let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
-					for (off_x, off_y) in areas {
-						let source_rect = Rect::new(48, 0, 16, 16);
-						canvas.copy(&spritesheet, Some(source_rect), Some(
-							Rect::new(
-								(off_x + x as i32 - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
-								(off_y + y as i32 - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
-								options.ui.tile_size,
-								options.ui.tile_size
-							)
-						)).unwrap();
-					}
+			} else {
+				(
+					(character.x - curr_xy.0
+						+ wi_width as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
+						* (options.ui.tile_size + zoom_amount) as i32,
+					(character.y as i32 - curr_xy.1
+						+ wi_height as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
+						* (options.ui.tile_size + zoom_amount) as i32,
+				)
+			};
+			let texture_x = match character.species {
+				spell::Species::Wall => 3,
+				spell::Species::Terminal => 0,
+				_ => 1,
+			} * 16;
+			let source_rect = Rect::new(texture_x, 0, 16, 16);
+			for (off_x, off_y) in areas {
+				if character.player_controlled && (off_x, off_y) != (0, 0) {
+					// Prevent the main character from being drawn multiple times for the "looping world" effect.
+					continue;
 				}
+				canvas
+					.copy(
+						&spritesheet,
+						Some(source_rect),
+						Some(Rect::new(
+							off_x + x,
+							off_y + y,
+							(options.ui.tile_size) as u32,
+							(options.ui.tile_size) as u32,
+						)),
+					)
+					.unwrap();
 			}
 		}
 
 		for axiom in world_manager.axioms.iter().map(|x| x) {
 			let texture_x = axiom.info.icon * 16;
 			let (world_width, world_height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-			let areas = [(0,0),(world_width, 0), (-world_width, 0), (0, world_height), (0, -world_height), (world_width, world_height), (-world_width, world_height), (world_width, -world_height), (-world_width, -world_height)];
+			let areas = [
+				(0, 0),
+				(world_width, 0),
+				(-world_width, 0),
+				(0, world_height),
+				(0, -world_height),
+				(world_width, world_height),
+				(-world_width, world_height),
+				(world_width, -world_height),
+				(-world_width, -world_height),
+			];
 			for (off_x, off_y) in areas {
 				let source_rect = Rect::new(texture_x, 16, 16, 16);
-				canvas.copy(&spritesheet, Some(source_rect), Some(
-					Rect::new(
-						(off_x + axiom.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
-						(off_y + axiom.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32) * options.ui.tile_size as i32, 
-						options.ui.tile_size,
-						options.ui.tile_size
+				canvas
+					.copy(
+						&spritesheet,
+						Some(source_rect),
+						Some(Rect::new(
+							(off_x + axiom.x - curr_xy.0
+								+ wi_width as i32
+									/ 2 / (options.ui.tile_size + zoom_amount) as i32)
+								* (options.ui.tile_size + zoom_amount) as i32,
+							(off_y + axiom.y - curr_xy.1
+								+ wi_height as i32
+									/ 2 / (options.ui.tile_size + zoom_amount) as i32)
+								* (options.ui.tile_size + zoom_amount) as i32,
+							(options.ui.tile_size + zoom_amount) as u32,
+							(options.ui.tile_size + zoom_amount) as u32,
+						)),
 					)
-				)).unwrap();
+					.unwrap();
 			}
 		}
 
@@ -280,7 +290,6 @@ pub fn main() {
 			&font,
 			&world_manager,
 			&resources,
-			&mut soul_jar,
 		);
 
 		canvas.present();
@@ -294,31 +303,30 @@ fn pamphlet(
 	font: &sdl2::ttf::Font<'_, '_>,
 	world_manager: &world::Manager,
 	resources: &ResourceManager<'_>,
-	soul_jar: &mut SoulJar<'_>,
 ) {
 	let mut left_pamphlet = gui::Context::new(
 		canvas,
-		Rect::new(
-			0,
-			0,
-			options.ui.left_pamphlet_width,
-			window_size.1,
-		),
+		Rect::new(0, 0, options.ui.left_pamphlet_width, window_size.1),
 	);
 	let mut minimap_fn = |left_pamphlet: &mut gui::Context| {
-		let chains = get_chain_border(6,window_size.1 as usize / 16 - 1);
-  		let mut chains = chains.iter().peekable();
+		let chains = get_chain_border(6, window_size.1 as usize / 16 - 1);
+		let mut chains = chains.iter().peekable();
 		left_pamphlet.horizontal();
 		while chains.peek().is_some() {
 			if let Some(chain) = chains.next() {
-				left_pamphlet.set((chain.position.0 * 64.) as i32, (chain.position.1 * 32.) as i32);
-				left_pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
+				left_pamphlet.set(
+					(chain.position.0 * 64.) as i32,
+					(chain.position.1 * 32.) as i32,
+				);
+				left_pamphlet.htexture_ex(
+					resources.get_texture(chain.sprite.clone()),
+					32,
+					chain.rotation as f64 * 57.3,
+				);
 			}
 		}
 	};
-	left_pamphlet.hsplit(&mut [
-		Some((&mut minimap_fn) as &mut dyn FnMut(&mut gui::Context)),
-	]);
+	left_pamphlet.hsplit(&mut [Some((&mut minimap_fn) as &mut dyn FnMut(&mut gui::Context))]);
 	let (px, py) = ((window_size.0 - options.ui.pamphlet_width) as i32, 0);
 	let mut pamphlet = gui::Context::new(
 		canvas,
@@ -331,24 +339,38 @@ fn pamphlet(
 	);
 
 	let mut inventory_fn = |pamphlet: &mut gui::Context| {
-		let chains = get_chain_border(12,24);
-  		let mut chains = chains.iter().peekable();
+		let chains = get_chain_border(12, 24);
+		let mut chains = chains.iter().peekable();
 		pamphlet.horizontal();
 		while chains.peek().is_some() {
 			if let Some(chain) = chains.next() {
-				pamphlet.set((chain.position.0 * 64.) as i32 + px, (chain.position.1 * 32.) as i32 + py);
-				pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
+				pamphlet.set(
+					(chain.position.0 * 64.) as i32 + px,
+					(chain.position.1 * 32.) as i32 + py,
+				);
+				pamphlet.htexture_ex(
+					resources.get_texture(chain.sprite.clone()),
+					32,
+					chain.rotation as f64 * 57.3,
+				);
 			}
 		}
 	};
 	let mut log_fn = |pamphlet: &mut gui::Context| {
-		let chains = get_chain_border(12,window_size.1 as usize / 16 - 27);
-  		let mut chains = chains.iter().peekable();
+		let chains = get_chain_border(12, window_size.1 as usize / 16 - 27);
+		let mut chains = chains.iter().peekable();
 		pamphlet.horizontal();
 		while chains.peek().is_some() {
 			if let Some(chain) = chains.next() {
-				pamphlet.set((chain.position.0 * 64.) as i32 + px, (chain.position.1 * 32.) as i32 + 13 * 32);
-				pamphlet.htexture_ex(resources.get_texture(chain.sprite.clone()), 32, chain.rotation as f64 * 57.3);
+				pamphlet.set(
+					(chain.position.0 * 64.) as i32 + px,
+					(chain.position.1 * 32.) as i32 + 13 * 32,
+				);
+				pamphlet.htexture_ex(
+					resources.get_texture(chain.sprite.clone()),
+					32,
+					chain.rotation as f64 * 57.3,
+				);
 			}
 		}
 	};
@@ -358,73 +380,79 @@ fn pamphlet(
 	]);
 }
 
-fn get_chain_border(
-    width: usize,
-    height: usize,
-) -> Vec<ChainIcon> {
+fn get_chain_border(width: usize, height: usize) -> Vec<ChainIcon> {
 	let offset = (width as f32 / 2., height as f32 / 2.);
-    let points = (0..width).flat_map(|x| (0..height).map(move |y| (x, y)));
-    let border_points = points.filter(|&(x, y)| x == 0 || y == 0 || x == width - 1 || y == height - 1);
-    let chain_icons = border_points.map(|(x, y)| {
-        let chain = match (x, y) {
-            (0, 0) => ChainType::TopLeft,
-            (0, y) if y == height - 1 => ChainType::BotLeft,
-            (x, 0) if x == width - 1 => ChainType::TopRight,
-            (x, y) if x == width - 1 && y == height - 1 => ChainType::BotRight,
-            _ => match (x, y) {
-                (0, _) => ChainType::Left,
-                (x, _) if x == width - 1 => ChainType::Right,
-                (_, 0) => ChainType::Top,
-                _ => ChainType::Bot,
-            },
-        };
+	let points = (0..width).flat_map(|x| (0..height).map(move |y| (x, y)));
+	let border_points =
+		points.filter(|&(x, y)| x == 0 || y == 0 || x == width - 1 || y == height - 1);
+	let chain_icons = border_points.map(|(x, y)| {
+		let chain = match (x, y) {
+			(0, 0) => ChainType::TopLeft,
+			(0, y) if y == height - 1 => ChainType::BotLeft,
+			(x, 0) if x == width - 1 => ChainType::TopRight,
+			(x, y) if x == width - 1 && y == height - 1 => ChainType::BotRight,
+			_ => match (x, y) {
+				(0, _) => ChainType::Left,
+				(x, _) if x == width - 1 => ChainType::Right,
+				(_, 0) => ChainType::Top,
+				_ => ChainType::Bot,
+			},
+		};
 
-        let sprite = if [ChainType::TopLeft, ChainType::TopRight, ChainType::BotLeft, ChainType::BotRight].contains(&chain) {
-            "corner_chain".into()
-        } else {
-            "lateral_chain".into()
-        };
+		let sprite = if [
+			ChainType::TopLeft,
+			ChainType::TopRight,
+			ChainType::BotLeft,
+			ChainType::BotRight,
+		]
+		.contains(&chain)
+		{
+			"corner_chain".into()
+		} else {
+			"lateral_chain".into()
+		};
 
-        let rotation = match chain {
-            ChainType::TopLeft => 0.,
-            ChainType::BotLeft => 3. * PI / 2.,
-            ChainType::TopRight => PI / 2.,
-            ChainType::BotRight => PI,
-            ChainType::Left => 0.,
-            ChainType::Right => PI,
-            ChainType::Top => PI / 2.,
-            ChainType::Bot => 3. * PI / 2.,
-            _ => panic!("Wrong chain type!"),
-        };
+		let rotation = match chain {
+			ChainType::TopLeft => 0.,
+			ChainType::BotLeft => 3. * PI / 2.,
+			ChainType::TopRight => PI / 2.,
+			ChainType::BotRight => PI,
+			ChainType::Left => 0.,
+			ChainType::Right => PI,
+			ChainType::Top => PI / 2.,
+			ChainType::Bot => 3. * PI / 2.,
+			_ => panic!("Wrong chain type!"),
+		};
 
-        ChainIcon {
-            sprite,
-            rotation,
-            position: ((x as f32 - width as f32 / 2. + offset.0) / 2., (y as f32 - height as f32 / 2. + offset.1) / 2.),
-        }
-    });
-    chain_icons.collect()
+		ChainIcon {
+			sprite,
+			rotation,
+			position: (
+				(x as f32 - width as f32 / 2. + offset.0) / 2.,
+				(y as f32 - height as f32 / 2. + offset.1) / 2.,
+			),
+		}
+	});
+	chain_icons.collect()
 }
 
-
-
 #[derive(PartialEq)]
-enum ChainType{
-    TopLeft,
-    TopRight,
-    BotLeft,
-    BotRight,
-    Top,
-    Right,
-    Left,
-    Bot,
-    EndLeft,
-    EndRight,
+enum ChainType {
+	TopLeft,
+	TopRight,
+	BotLeft,
+	BotRight,
+	Top,
+	Right,
+	Left,
+	Bot,
+	EndLeft,
+	EndRight,
 }
 
 #[derive(Debug)]
-struct ChainIcon{
-    sprite: String,
-    rotation: f32,
-    position: (f32, f32)
+struct ChainIcon {
+	sprite: String,
+	rotation: f32,
+	position: (f32, f32),
 }

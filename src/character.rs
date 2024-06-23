@@ -29,7 +29,7 @@ impl Piece {
 	}
 }
 
-#[derive(Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug, serde::Serialize, serde::Deserialize)]
 pub enum OrdDir {
 	Up,
 	Right,

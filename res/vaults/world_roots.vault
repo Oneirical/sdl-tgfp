@@ -1,5 +1,5 @@
 [symbols."#"]
-Tile = "Wall"
+Character = "wall"
 
 # Layout
 #^#V#<#>#

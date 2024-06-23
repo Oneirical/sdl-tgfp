@@ -9,14 +9,12 @@
 pub mod attack;
 pub mod character;
 pub mod console;
-pub mod floor;
 pub mod gui;
 pub mod input;
 pub mod item;
 pub mod nouns;
 pub mod options;
 pub mod resource_manager;
-pub mod soul;
 pub mod spell;
 pub mod vault;
 pub mod world;
@@ -35,12 +33,10 @@ pub mod prelude {
 	pub use super::*;
 	pub use attack::Attack;
 	pub use console::Console;
-	pub use floor::Floor;
 	pub use item::Item;
 	pub use nouns::Nouns;
 	pub use options::Options;
 	pub use resource_manager::ResourceManager;
-	pub use soul::Soul;
 	pub use spell::Spell;
 	pub use vault::Vault;
 }

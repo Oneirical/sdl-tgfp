@@ -1,6 +1,9 @@
 use sdl2::keyboard::Keycode;
 
-use crate::{character::{OrdDir, Piece}, world::Manager};
+use crate::{
+	character::{OrdDir, Piece},
+	world::Manager,
+};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Spell {
@@ -12,43 +15,30 @@ pub struct Spell {
 
 #[derive(Clone, Debug)]
 pub struct PlantAxiom {
-	pub axiom: Axiom,
+	pub axiom: Species,
 	pub x: i32,
 	pub y: i32,
 	pub info: Spell,
 }
 
-#[derive(Clone, Debug)]
-pub enum Axiom {
-	// Contingencies
-	Keypress(Keycode),
-	RadioReceiver(Range),
-
-	// Anointers
-	SelectSpecies(Species),
-
-	// Forms
-	CardinalTargeter(OrdDir),
-
-	// Functions
-	Teleport,
-	RadioBroadcaster(Range),
-}
-
-pub fn match_axiom_with_codename (
-	axiom: &Axiom
-) -> &str {
-	match axiom {
-		Axiom::Keypress(_) => "keypress",
-		Axiom::CardinalTargeter(_) => "cardinal_targeter",
-		Axiom::SelectSpecies(_) => "select_species",
-		Axiom::RadioBroadcaster(_) => "radio_broadcaster",
-		Axiom::RadioReceiver(_) => "radio_receiver",
-		Axiom::Teleport => "teleport",
+pub fn match_axiom_with_codename(axiom: &Species) -> Option<&str> {
+	let code = match axiom {
+		Species::Keypress(_) => "keypress",
+		Species::CardinalTargeter(_) => "cardinal_targeter",
+		Species::SelectSpecies(_) => "select_species",
+		Species::RadioBroadcaster(_) => "radio_broadcaster",
+		Species::RadioReceiver(_) => "radio_receiver",
+		Species::Teleport => "teleport",
+		_ => "",
+	};
+	if code.is_empty() {
+		None
+	} else {
+		Some(code)
 	}
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Range {
 	Targeted(String),
 	Contained(String),
@@ -61,37 +51,51 @@ pub enum Species {
 	Wall,
 	Terminal,
 	WorldStem,
+
+	// AXIOMS
+
+	// Contingencies
+	Keypress(String),
+	RadioReceiver(Range),
+
+	// Anointers
+	SelectSpecies(Box<Species>),
+
+	// Forms
+	CardinalTargeter(OrdDir),
+
+	// Functions
+	Teleport,
+	RadioBroadcaster(Range),
 }
 
-pub fn process_axioms(
-	axiom_grid: &Vec<PlantAxiom>,
-	pulse: (i32, i32),
-	manager: &Manager,
-) {
+pub fn process_axioms(axiom_grid: &Vec<PlantAxiom>, pulse: (i32, i32), manager: &Manager) {
 	let mut casters = Vec::new();
 	let mut pulse = vec![pulse];
 	let mut visited = Vec::new();
-	
+
 	loop {
 		let current_pulse = match pulse.pop() {
 			Some(coords) => coords,
 			None => break,
 		};
-		let curr_axiom = match axiom_grid.iter().find(|plant_axiom| (plant_axiom.x, plant_axiom.y) == current_pulse) {
+		let curr_axiom = match axiom_grid
+			.iter()
+			.find(|plant_axiom| (plant_axiom.x, plant_axiom.y) == current_pulse)
+		{
 			Some(axiom) => axiom,
 			None => continue,
 		};
 		match &curr_axiom.axiom {
 			// Anoint all creatures of a given Species.
-			Axiom::SelectSpecies (species) => {
-				let found = manager.get_characters_of_species(species.clone());
+			Species::SelectSpecies(species) => {
+				let found = manager.get_characters_of_species(*species.clone());
 				for creature in found {
 					casters.push((creature, Vec::new()));
 				}
-				
 			}
 			// Target an adjacent tile to each Caster.
-			Axiom::CardinalTargeter(dir) => {
+			Species::CardinalTargeter(dir) => {
 				for (caster, ref mut targets) in casters.iter_mut() {
 					let caster = caster.borrow();
 					let offset = dir.as_offset();
@@ -99,45 +103,45 @@ pub fn process_axioms(
 				}
 			}
 			// Teleport each Caster to its closest Target.
-			Axiom::Teleport => {
+			Species::Teleport => {
 				for (caster, targets) in casters.iter_mut() {
-					let targets: Vec<_> = targets.iter()
-					.filter_map(|(x, y)| {
-						if manager.get_character_at(*x, *y).is_none() {
-							Some((*x, *y))
-						} else {
-							None
-						}
-					}).collect();
+					let targets: Vec<_> = targets
+						.iter()
+						.filter_map(|(x, y)| {
+							if manager.get_character_at(*x, *y).is_none() {
+								Some((*x, *y))
+							} else {
+								None
+							}
+						})
+						.collect();
 					let b_caster = caster.borrow();
 					let (cx, cy) = (b_caster.x, b_caster.y);
 					drop(b_caster);
-					if let Some((x,y)) = find_closest_coordinate(&targets, (cx, cy)) {
+					if let Some((x, y)) = find_closest_coordinate(&targets, (cx, cy)) {
 						let _ = manager.teleport_piece(caster, x, y);
 					}
 				}
 			}
-			Axiom::RadioBroadcaster(output_range) => {
-				match output_range {
-					Range::Global(output_message) => {
-						for axiom in &manager.axioms {
-							if let Axiom::RadioReceiver(input_range) = &axiom.axiom {
-								let input_message = match input_range {
-									Range::Global(input_message) => input_message,
-									_ => todo!(),
-								};
-								if *output_message == *input_message {
-									process_axioms(axiom_grid, (axiom.x, axiom.y), manager);
-								}
+			Species::RadioBroadcaster(output_range) => match output_range {
+				Range::Global(output_message) => {
+					for axiom in &manager.axioms {
+						if let Species::RadioReceiver(input_range) = &axiom.axiom {
+							let input_message = match input_range {
+								Range::Global(input_message) => input_message,
+								_ => todo!(),
+							};
+							if *output_message == *input_message {
+								process_axioms(axiom_grid, (axiom.x, axiom.y), manager);
 							}
 						}
 					}
-					_ => ()
 				}
-			}
-			_ => ()
+				_ => (),
+			},
+			_ => (),
 		}
-		for adjacency in [(0, 1), (1, 0), (-1,0), (0,-1)] {
+		for adjacency in [(0, 1), (1, 0), (-1, 0), (0, -1)] {
 			let new_pulse = (current_pulse.0 + adjacency.0, current_pulse.1 + adjacency.1);
 			if !visited.contains(&new_pulse) {
 				pulse.push(new_pulse);
@@ -148,20 +152,20 @@ pub fn process_axioms(
 }
 
 fn manhattan_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (a.0 - b.0).abs() + (a.1 - b.1).abs()
+	(a.0 - b.0).abs() + (a.1 - b.1).abs()
 }
 
 fn find_closest_coordinate(coordinates: &[(i32, i32)], target: (i32, i32)) -> Option<(i32, i32)> {
-    let mut min_distance = i32::MAX;
-    let mut closest_coordinate = None;
+	let mut min_distance = i32::MAX;
+	let mut closest_coordinate = None;
 
-    for &coordinate in coordinates.iter() {
-        let distance = manhattan_distance(coordinate, target);
-        if distance < min_distance {
-            min_distance = distance;
-            closest_coordinate = Some(coordinate);
-        }
-    }
+	for &coordinate in coordinates.iter() {
+		let distance = manhattan_distance(coordinate, target);
+		if distance < min_distance {
+			min_distance = distance;
+			closest_coordinate = Some(coordinate);
+		}
+	}
 
-    closest_coordinate
+	closest_coordinate
 }

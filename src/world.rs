@@ -7,6 +7,9 @@ use self::spell::{match_axiom_with_codename, PlantAxiom, Species};
 
 const DEFAULT_ATTACK_MESSAGE: &str = "{self_Address} attacked {target_indirect}";
 
+pub const WORLD_ROWS: usize = 16;
+pub const WORLD_COLS: usize = 16;
+
 pub type CharacterRef = RefCell<character::Piece>;
 
 /// This struct contains all information that is relevant during gameplay.
@@ -17,7 +20,6 @@ pub struct Manager {
 	pub location: Location,
 	/// This is the level pointed to by `location.level`.
 	pub current_level: Level,
-	pub current_floor: Floor,
 	// It might be useful to sort this by remaining action delay to make selecting the next character easier.
 	pub characters: Vec<CharacterRef>,
 	pub axioms: Vec<PlantAxiom>,
@@ -85,7 +87,10 @@ impl Manager {
 		})
 	}
 
-	pub fn get_characters_of_species(&self, species: Species) -> impl Iterator<Item = &CharacterRef> {
+	pub fn get_characters_of_species(
+		&self,
+		species: Species,
+	) -> impl Iterator<Item = &CharacterRef> {
 		self.characters.iter().filter(move |p| {
 			let p = p.borrow();
 			p.species == species
@@ -93,25 +98,27 @@ impl Manager {
 	}
 
 	pub fn apply_vault(&mut self, x: i32, y: i32, vault: &Vault, resources: &ResourceManager) {
-		self.current_floor.blit_vault(y as usize, x as usize, vault); // Weird swapping. To check when making Pieces and Tiles the same thing.
 		for (xoff, yoff, sheet_name) in &vault.characters {
 			let piece = character::Piece {
 				x: x + xoff,
 				y: y + yoff,
-				..character::Piece::new(resources.get_sheet(sheet_name).unwrap().clone(), resources)
+				..character::Piece::new(resources.get_sheet("luvui").unwrap().clone(), resources)
 			};
 			self.characters.push(RefCell::new(piece));
 		}
 
-		for (xoff, yoff, axiom) in &vault.axioms {
-			let plant_axiom = PlantAxiom {
-				x: x + xoff,
-				y: y + yoff,
-				axiom: axiom.clone(),
-				info: resources.get_spell(match_axiom_with_codename(axiom)).unwrap().clone()
-			};
-			self.axioms.push(plant_axiom);
-		}
+		// for (xoff, yoff, axiom) in &vault.axioms {
+		// 	let plant_axiom = PlantAxiom {
+		// 		x: x + xoff,
+		// 		y: y + yoff,
+		// 		axiom: axiom.clone(),
+		// 		info: resources
+		// 			.get_spell(match_axiom_with_codename(axiom).unwrap())
+		// 			.unwrap()
+		// 			.clone(),
+		// 	};
+		// 	self.axioms.push(plant_axiom);
+		// }
 	}
 }
 
@@ -194,30 +201,22 @@ impl Manager {
 		&self,
 		character_ref: &CharacterRef,
 		x: i32,
-		y: i32
+		y: i32,
 	) -> Result<MovementResult, MovementError> {
-		use crate::floor::Tile;
-
-		if self.get_character_at(x, y).is_some() { // The Some can be unpacked here if we want to check for collisions.
-			return Err(MovementError::HitWall);
-		}
-
-		let tile = self.current_floor.map.get(y, x);
-		match tile {
-			Some(Tile::Floor) => {
+		if self.get_character_at(x, y).is_some() {
+			// The Some can be unpacked here if we want to check for collisions.
+			Err(MovementError::HitWall)
+		} else {
+			if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
+				let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+				let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
+				self.teleport_piece(character_ref, wrap_x, wrap_y)
+			} else {
 				let mut character = character_ref.borrow_mut();
 				character.x = x;
 				character.y = y;
 				Ok(MovementResult::Move)
 			}
-			Some(Tile::Wall) => Err(MovementError::HitWall),
-			None => {
-				use crate::floor::WORLD_COLS;
-				use crate::floor::WORLD_ROWS;
-				let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-				let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
-				self.teleport_piece(character_ref, wrap_x, wrap_y)
-			},
 		}
 	}
 }

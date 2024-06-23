@@ -36,24 +36,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
-name = "esprit2"
-version = "0.1.0"
-dependencies = [
- "aho-corasick",
- "grid",
- "lazy_static",
- "paste",
- "rand",
- "sdl2",
- "serde",
- "thiserror",
- "toml",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,6 +205,24 @@ dependencies = [
  "cfg-if",
  "libc",
  "version-compare",
+]
+
+[[package]]
+name = "sdltgfp"
+version = "0.1.0"
+dependencies = [
+ "aho-corasick",
+ "grid",
+ "lazy_static",
+ "paste",
+ "rand",
+ "sdl2",
+ "serde",
+ "thiserror",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
