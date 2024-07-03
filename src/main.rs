@@ -1,5 +1,3 @@
-use sdl2::keyboard::Keycode;
-use sdl2::render::Texture;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
 use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use sdltgfp::prelude::*;
@@ -86,16 +84,17 @@ pub fn main() {
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
-		items: Vec::new(),
 	};
 	world_manager.characters.push(CharacterRef::new(player));
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(
 		0,
 		11,
+		0,
 		resources.get_vault("world_roots").unwrap(),
 		&resources,
 	);
+	world_manager.apply_vault(0, 0, 1, resources.get_vault("lower").unwrap(), &resources);
 	let spritesheet = resources.get_texture("spritesheet");
 	let font = ttf_context
 		.load_font_from_rwops(
@@ -147,7 +146,7 @@ pub fn main() {
 			- options.ui.pamphlet_width
 			- options.ui.left_pamphlet_width
 			- options.ui.padding * 2;
-		// zoom_amount += if global_time % 10 == 0 { 1 } else { 0 };
+		// zoom_amount += if global_time % 1 == 0 { 1 } else { 0 };
 		let tiles_in_viewport = side_dim / (options.ui.tile_size);
 		canvas.set_viewport(Rect::new(
 			options.ui.left_pamphlet_width as i32 + options.ui.padding as i32,
@@ -170,6 +169,7 @@ pub fn main() {
 			- options.ui.padding * 2;
 		let wi_height = window_size.1 - options.ui.console_height - options.ui.padding * 2;
 		let mut curr_xy = (0, 0);
+		let mut curr_z = 0;
 		let (world_width, world_height) = (
 			(WORLD_COLS * options.ui.tile_size as usize) as i32,
 			(WORLD_ROWS * options.ui.tile_size as usize) as i32,
@@ -185,8 +185,55 @@ pub fn main() {
 			(world_width, -world_height),
 			(-world_width, -world_height),
 		];
-		// Draw characters
+
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
+			if character.player_controlled {
+				curr_xy = (character.x, character.y);
+				curr_z = character.z;
+			}
+		}
+		for character in world_manager.characters.iter().map(|x| x.borrow()) {
+			let (x, y) = (
+				(character.x - curr_xy.0 + wi_width as i32 / 2 / 8) * (zoom_amount + 8),
+				(character.y - curr_xy.1 + wi_height as i32 / 2 / 8) * (zoom_amount + 8),
+			);
+			let mut texture_y = 0;
+			let texture_x = match character.species {
+				spell::Species::Wall => 3,
+				spell::Species::Terminal => 0,
+				_ => {
+					// It could be an axiom.
+					let axiom_name = match_axiom_with_codename(&character.species);
+					if let Some(axiom_name) = axiom_name {
+						texture_y = 16;
+						resources.get_spell(axiom_name).unwrap().icon
+					} else {
+						// Fallback "missing texture" for unknown species.
+						1
+					}
+				}
+			} * 16;
+			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
+			for (off_x, off_y) in areas {
+				canvas
+					.copy(
+						spritesheet,
+						Some(source_rect),
+						Some(Rect::new(
+							off_x + x - zoom_amount * 8,
+							off_y + y - zoom_amount * 8,
+							8 + zoom_amount as u32,
+							8 + zoom_amount as u32,
+						)),
+					)
+					.unwrap();
+			}
+		}
+		// Draw characters (normal)
+		for character in world_manager.characters.iter().map(|x| x.borrow()) {
+			if curr_z as i32 != character.z {
+				continue;
+			}
 			let (x, y) = if character.player_controlled {
 				curr_xy = (character.x, character.y);
 				(
@@ -195,12 +242,10 @@ pub fn main() {
 				)
 			} else {
 				(
-					(character.x - curr_xy.0
-						+ wi_width as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
-						* (options.ui.tile_size + zoom_amount) as i32,
-					(character.y - curr_xy.1
-						+ wi_height as i32 / 2 / (options.ui.tile_size + zoom_amount) as i32)
-						* (options.ui.tile_size + zoom_amount) as i32,
+					(character.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32)
+						* (zoom_amount + options.ui.tile_size as i32),
+					(character.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32)
+						* (zoom_amount + options.ui.tile_size as i32),
 				)
 			};
 			let mut texture_y = 0;
@@ -221,8 +266,18 @@ pub fn main() {
 			} * 16;
 			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
 			for (off_x, off_y) in areas {
-				if character.player_controlled && (off_x, off_y) != (0, 0) {
+				if character.player_controlled {
 					// Prevent the main character from being drawn multiple times for the "looping world" effect.
+					if (off_x, off_y) != (0, 0) {
+						continue;
+					}
+					canvas
+						.copy(
+							spritesheet,
+							Some(source_rect),
+							Some(Rect::new(x, y, options.ui.tile_size, options.ui.tile_size)),
+						)
+						.unwrap();
 					continue;
 				}
 				canvas
@@ -230,10 +285,10 @@ pub fn main() {
 						spritesheet,
 						Some(source_rect),
 						Some(Rect::new(
-							off_x + x,
-							off_y + y,
-							options.ui.tile_size,
-							options.ui.tile_size,
+							off_x + x - zoom_amount * 16,
+							off_y + y - zoom_amount * 16,
+							options.ui.tile_size + zoom_amount as u32,
+							options.ui.tile_size + zoom_amount as u32,
 						)),
 					)
 					.unwrap();

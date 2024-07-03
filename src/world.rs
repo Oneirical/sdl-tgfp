@@ -20,7 +20,6 @@ pub struct Manager {
 	pub current_level: Level,
 	// It might be useful to sort this by remaining action delay to make selecting the next character easier.
 	pub characters: Vec<CharacterRef>,
-	pub items: Vec<item::Piece>,
 	/// Always point to the party's pieces, even across floors.
 	/// When exiting a dungeon, these sheets will be saved to a party struct.
 	pub console: Console,
@@ -77,10 +76,10 @@ impl Manager {
 		&self.characters[0]
 	}
 
-	pub fn get_character_at(&self, x: i32, y: i32) -> Option<&CharacterRef> {
+	pub fn get_character_at(&self, x: i32, y: i32, z: i32) -> Option<&CharacterRef> {
 		self.characters.iter().find(|p| {
 			let p = p.borrow();
-			p.x == x && p.y == y
+			p.x == x && p.y == y && p.z == z
 		})
 	}
 
@@ -94,11 +93,19 @@ impl Manager {
 		})
 	}
 
-	pub fn apply_vault(&mut self, x: i32, y: i32, vault: &Vault, resources: &ResourceManager) {
+	pub fn apply_vault(
+		&mut self,
+		x: i32,
+		y: i32,
+		z: i32,
+		vault: &Vault,
+		resources: &ResourceManager,
+	) {
 		for (xoff, yoff, species) in &vault.characters {
 			let piece = character::Piece {
 				x: x + xoff,
 				y: y + yoff,
+				z,
 				species: species.clone(),
 				..character::Piece::new(resources.get_sheet("luvui").unwrap().clone(), resources)
 			};
@@ -174,12 +181,12 @@ impl Manager {
 		character_ref: &CharacterRef,
 		dir: OrdDir,
 	) -> Result<MovementResult, MovementError> {
-		let (dest_x, dest_y) = {
+		let (dest_x, dest_y, z) = {
 			let (x, y) = dir.as_offset();
 			let character = character_ref.borrow();
-			(character.x + x, character.y + y)
+			(character.x + x, character.y + y, character.z)
 		};
-		self.teleport_piece(character_ref, dest_x, dest_y)
+		self.teleport_piece(character_ref, dest_x, dest_y, z)
 	}
 
 	pub fn teleport_piece(
@@ -187,18 +194,20 @@ impl Manager {
 		character_ref: &CharacterRef,
 		x: i32,
 		y: i32,
+		z: i32,
 	) -> Result<MovementResult, MovementError> {
-		if self.get_character_at(x, y).is_some() {
+		if self.get_character_at(x, y, z).is_some() {
 			// The Some can be unpacked here if we want to check for collisions.
 			Err(MovementError::HitWall)
 		} else if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
 			let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
 			let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
-			self.teleport_piece(character_ref, wrap_x, wrap_y)
+			self.teleport_piece(character_ref, wrap_x, wrap_y, z)
 		} else {
 			let mut character = character_ref.borrow_mut();
 			character.x = x;
 			character.y = y;
+			character.z = z;
 			Ok(MovementResult::Move)
 		}
 	}

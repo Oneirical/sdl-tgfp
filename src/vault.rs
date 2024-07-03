@@ -57,6 +57,9 @@ impl Vault {
 			('E', Species::CardinalTargeter(OrdDir::Right)),
 			('O', Species::CardinalTargeter(OrdDir::Left)),
 			('P', Species::SelectSpecies(Box::new(Species::Terminal))),
+			('R', Species::Keypress("R".to_owned())),
+			('@', Species::SelfTargeter),
+			('Z', Species::RealmShift(1)),
 		]);
 
 		for (y, line) in layout.lines().enumerate() {

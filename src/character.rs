@@ -11,6 +11,7 @@ pub struct Piece {
 	pub sheet: Sheet,
 	pub x: i32,
 	pub y: i32,
+	pub z: i32,
 	pub next_action: Option<Action>,
 	pub player_controlled: bool,
 }
@@ -23,6 +24,7 @@ impl Piece {
 			sheet,
 			x: 0,
 			y: 0,
+			z: 0,
 			next_action: None,
 			player_controlled: false,
 		}

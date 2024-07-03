@@ -34,7 +34,10 @@ pub fn world(
 				for axiom in &world_manager.characters {
 					if let Species::Keypress(key) = &axiom.borrow().species {
 						if Keycode::from_name(key).unwrap() == keycode {
-							process_axioms((axiom.borrow().x, axiom.borrow().y), world_manager);
+							process_axioms(
+								(axiom.borrow().x, axiom.borrow().y, axiom.borrow().z),
+								world_manager,
+							);
 						}
 					}
 				}
