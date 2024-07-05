@@ -2,7 +2,10 @@
 Character = "wall"
 
 # Layout
-#^#V#<#>#R
+ CP+?
+
+ ^ V < >
+ % % % % R T
  P P P P P
  NTS OTE @
-  X   X  ZTX
+  X   X  Z X

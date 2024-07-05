@@ -89,7 +89,7 @@ pub fn main() {
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(
 		0,
-		11,
+		0,
 		0,
 		resources.get_vault("world_roots").unwrap(),
 		&resources,
@@ -192,43 +192,43 @@ pub fn main() {
 				curr_z = character.z;
 			}
 		}
-		for character in world_manager.characters.iter().map(|x| x.borrow()) {
-			let (x, y) = (
-				(character.x - curr_xy.0 + wi_width as i32 / 2 / 8) * (zoom_amount + 8),
-				(character.y - curr_xy.1 + wi_height as i32 / 2 / 8) * (zoom_amount + 8),
-			);
-			let mut texture_y = 0;
-			let texture_x = match character.species {
-				spell::Species::Wall => 3,
-				spell::Species::Terminal => 0,
-				_ => {
-					// It could be an axiom.
-					let axiom_name = match_axiom_with_codename(&character.species);
-					if let Some(axiom_name) = axiom_name {
-						texture_y = 16;
-						resources.get_spell(axiom_name).unwrap().icon
-					} else {
-						// Fallback "missing texture" for unknown species.
-						1
-					}
-				}
-			} * 16;
-			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
-			for (off_x, off_y) in areas {
-				canvas
-					.copy(
-						spritesheet,
-						Some(source_rect),
-						Some(Rect::new(
-							off_x + x - zoom_amount * 8,
-							off_y + y - zoom_amount * 8,
-							8 + zoom_amount as u32,
-							8 + zoom_amount as u32,
-						)),
-					)
-					.unwrap();
-			}
-		}
+		// for character in world_manager.characters.iter().map(|x| x.borrow()) {
+		// 	let (x, y) = (
+		// 		(character.x - curr_xy.0 + wi_width as i32 / 2 / 8) * (zoom_amount + 8),
+		// 		(character.y - curr_xy.1 + wi_height as i32 / 2 / 8) * (zoom_amount + 8),
+		// 	);
+		// 	let mut texture_y = 0;
+		// 	let texture_x = match character.species {
+		// 		spell::Species::Wall => 3,
+		// 		spell::Species::Terminal => 0,
+		// 		_ => {
+		// 			// It could be an axiom.
+		// 			let axiom_name = match_axiom_with_codename(&character.species);
+		// 			if let Some(axiom_name) = axiom_name {
+		// 				texture_y = 16;
+		// 				resources.get_spell(axiom_name).unwrap().icon
+		// 			} else {
+		// 				// Fallback "missing texture" for unknown species.
+		// 				1
+		// 			}
+		// 		}
+		// 	} * 16;
+		// 	let source_rect = Rect::new(texture_x, texture_y, 16, 16);
+		// 	for (off_x, off_y) in areas {
+		// 		canvas
+		// 			.copy(
+		// 				spritesheet,
+		// 				Some(source_rect),
+		// 				Some(Rect::new(
+		// 					off_x + x - zoom_amount * 8,
+		// 					off_y + y - zoom_amount * 8,
+		// 					8 + zoom_amount as u32,
+		// 					8 + zoom_amount as u32,
+		// 				)),
+		// 			)
+		// 			.unwrap();
+		// 	}
+		// }
 		// Draw characters (normal)
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
 			if curr_z as i32 != character.z {

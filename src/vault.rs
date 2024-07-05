@@ -48,6 +48,7 @@ impl Vault {
 			('V', Species::Keypress("Down".to_owned())),
 			('^', Species::Keypress("Up".to_owned())),
 			('T', Species::Teleport),
+			('?', Species::Twinning),
 			(
 				'X',
 				Species::RadioBroadcaster(Range::Global("EON".to_string())),
@@ -57,8 +58,11 @@ impl Vault {
 			('E', Species::CardinalTargeter(OrdDir::Right)),
 			('O', Species::CardinalTargeter(OrdDir::Left)),
 			('P', Species::SelectSpecies(Box::new(Species::Terminal))),
+			('%', Species::SelectSpecies(Box::new(Species::Teleport))),
 			('R', Species::Keypress("R".to_owned())),
+			('C', Species::Keypress("C".to_owned())),
 			('@', Species::SelfTargeter),
+			('+', Species::PlusTargeter),
 			('Z', Species::RealmShift(1)),
 		]);
 

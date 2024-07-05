@@ -208,6 +208,7 @@ impl Manager {
 			character.x = x;
 			character.y = y;
 			character.z = z;
+			drop(character);
 			Ok(MovementResult::Move)
 		}
 	}
