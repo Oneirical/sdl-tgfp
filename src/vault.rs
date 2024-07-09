@@ -49,6 +49,13 @@ impl Vault {
 			('^', Species::Keypress("Up".to_owned())),
 			('T', Species::Teleport),
 			('?', Species::Twinning),
+			('!', Species::EpsilonHead),
+			(
+				'(',
+				Species::RadioReceiver(Range::Global("EON".to_string())),
+			),
+			('*', Species::SelectSpecies(Box::new(Species::EpsilonHead))),
+			(')', Species::PathfindTargeter(Box::new(Species::Terminal))),
 			(
 				'X',
 				Species::RadioBroadcaster(Range::Global("EON".to_string())),

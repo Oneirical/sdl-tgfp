@@ -38,7 +38,7 @@ pub enum Species {
 	Wall,
 	Terminal,
 	WorldStem,
-
+	EpsilonHead,
 	// AXIOMS
 
 	// Contingencies
@@ -49,6 +49,7 @@ pub enum Species {
 	SelectSpecies(Box<Species>),
 
 	// Forms
+	PathfindTargeter(Box<Species>),
 	CardinalTargeter(OrdDir),
 	PlusTargeter,
 	SelfTargeter,
@@ -90,6 +91,39 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 					let offset = dir.as_offset();
 					targets.push((caster.x + offset.0, caster.y + offset.1, caster.z));
 					drop(caster);
+				}
+			}
+			Species::PathfindTargeter(species) => {
+				let found = manager.get_characters_of_species(*species.clone());
+				for (caster, ref mut targets) in casters.iter_mut() {
+					let mut chosen = None;
+					let mut distance = i32::MAX;
+					for entity in found.clone() {
+						let candidate = entity.borrow();
+						let cand_coords = (candidate.x, candidate.y, candidate.z);
+						let caster = caster.borrow();
+						let new_dist =
+							manhattan_distance(cand_coords, (caster.x, caster.y, caster.z));
+						if new_dist < distance {
+							chosen = Some(cand_coords);
+							distance = new_dist;
+						}
+					}
+					if let Some(chosen) = chosen {
+						let caster = caster.borrow();
+						let new_tar = find_closest_coordinate(
+							&[
+								(caster.x + 1, caster.y, caster.z),
+								(caster.x - 1, caster.y, caster.z),
+								(caster.x, caster.y - 1, caster.z),
+								(caster.x, caster.y + 1, caster.z),
+							],
+							chosen,
+						);
+						if let Some(new_tar) = new_tar {
+							targets.push(new_tar);
+						}
+					}
 				}
 			}
 			// Target all orthogonal tiles to each Caster.

@@ -86,7 +86,7 @@ impl Manager {
 	pub fn get_characters_of_species(
 		&self,
 		species: Species,
-	) -> impl Iterator<Item = &CharacterRef> {
+	) -> impl Iterator<Item = &CharacterRef> + Clone {
 		self.characters.iter().filter(move |p| {
 			let p = p.borrow();
 			p.species == species
