@@ -66,7 +66,6 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 	let mut casters = Vec::new();
 	let mut pulse = vec![pulse];
 	let mut visited = Vec::new();
-
 	while let Some(current_pulse) = pulse.pop() {
 		let curr_axiom =
 			match manager.get_character_at(current_pulse.0, current_pulse.1, current_pulse.2) {
@@ -102,7 +101,7 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 						let candidate = entity.borrow();
 						let cand_coords = (candidate.x, candidate.y, candidate.z);
 						let caster = caster.borrow();
-						let new_dist =
+						let new_dist = // Find the closest representative of Species.
 							manhattan_distance(cand_coords, (caster.x, caster.y, caster.z));
 						if new_dist < distance {
 							chosen = Some(cand_coords);
@@ -111,15 +110,23 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 					}
 					if let Some(chosen) = chosen {
 						let caster = caster.borrow();
-						let new_tar = find_closest_coordinate(
-							&[
-								(caster.x + 1, caster.y, caster.z),
-								(caster.x - 1, caster.y, caster.z),
-								(caster.x, caster.y - 1, caster.z),
-								(caster.x, caster.y + 1, caster.z),
-							],
-							chosen,
-						);
+						let pot_targets = &[
+							(caster.x + 1, caster.y, caster.z),
+							(caster.x - 1, caster.y, caster.z),
+							(caster.x, caster.y - 1, caster.z),
+							(caster.x, caster.y + 1, caster.z),
+						];
+						let pot_targets: Vec<_> = pot_targets
+							.iter()
+							.filter_map(|(x, y, z)| {
+								if manager.get_character_at(*x, *y, *z).is_none() {
+									Some((*x, *y, *z))
+								} else {
+									None
+								}
+							})
+							.collect();
+						let new_tar = find_closest_coordinate(&pot_targets, chosen);
 						if let Some(new_tar) = new_tar {
 							targets.push(new_tar);
 						}
