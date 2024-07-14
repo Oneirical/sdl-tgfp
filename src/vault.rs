@@ -50,6 +50,9 @@ impl Vault {
 			('T', Species::Teleport),
 			('?', Species::Twinning),
 			('!', Species::EpsilonHead),
+			('4', Species::EpsilonTail(1)),
+			('5', Species::EpsilonTail(2)),
+			('6', Species::EpsilonTail(3)),
 			(
 				'(',
 				Species::RadioReceiver(Range::Global("EON".to_string())),
@@ -71,6 +74,19 @@ impl Vault {
 			('@', Species::SelfTargeter),
 			('+', Species::PlusTargeter),
 			('Z', Species::RealmShift(1)),
+			('W', Species::AnointToTarget(Box::new(Species::EpsilonHead))),
+			(
+				'1',
+				Species::AnointToTarget(Box::new(Species::EpsilonTail(1))),
+			),
+			(
+				'2',
+				Species::AnointToTarget(Box::new(Species::EpsilonTail(2))),
+			),
+			(
+				'3',
+				Species::AnointToTarget(Box::new(Species::EpsilonTail(3))),
+			),
 		]);
 
 		for (y, line) in layout.lines().enumerate() {

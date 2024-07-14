@@ -252,7 +252,8 @@ pub fn main() {
 			let texture_x = match character.species {
 				spell::Species::Wall => 3,
 				spell::Species::Terminal => 0,
-				spell::Species::EpsilonHead => 8,
+				spell::Species::EpsilonHead => 67,
+				spell::Species::EpsilonTail(_) => 68,
 				_ => {
 					// It could be an axiom.
 					let axiom_name = match_axiom_with_codename(&character.species);

@@ -39,6 +39,7 @@ pub enum Species {
 	Terminal,
 	WorldStem,
 	EpsilonHead,
+	EpsilonTail(usize),
 	// AXIOMS
 
 	// Contingencies
@@ -47,6 +48,7 @@ pub enum Species {
 
 	// Anointers
 	SelectSpecies(Box<Species>),
+	AnointToTarget(Box<Species>),
 
 	// Forms
 	PathfindTargeter(Box<Species>),
@@ -73,6 +75,7 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 				None => continue,
 			};
 		let curr_ax_species = curr_axiom.borrow().species.clone();
+		dbg!(&curr_ax_species);
 		match &curr_ax_species {
 			Species::Keypress(_) => (),
 			// Anoint all creatures of a given Species.
@@ -81,6 +84,20 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 				let found = manager.get_characters_of_species(*species.clone());
 				for creature in found {
 					casters.push((creature, Vec::new()));
+				}
+			}
+			Species::AnointToTarget(species) => {
+				let mut new_targets = Vec::new();
+				for (caster, _targets) in casters.iter_mut() {
+					let caster = caster.borrow_mut();
+					new_targets.push((caster.x, caster.y, caster.z)); // Grab the position of every caster
+					drop(caster);
+				}
+				casters.clear(); // Remove all casters and their targets
+				 // should this be restricted to Z level?
+				let found = manager.get_characters_of_species(*species.clone());
+				for creature in found {
+					casters.push((creature, new_targets.clone()));
 				}
 			}
 			// Target an adjacent tile to each Caster.
@@ -213,7 +230,8 @@ pub fn process_axioms(pulse: (i32, i32, i32), manager: &Manager) {
 			},
 			_ => (), // Any non-Axiom species
 		}
-		for adjacency in [(0, 1), (1, 0), (-1, 0), (0, -1)] {
+		for adjacency in [(1, 0), (-1, 0), (0, -1), (0, 1)] {
+			// TODO: make this loop around the edges
 			let new_pulse = (
 				current_pulse.0 + adjacency.0,
 				current_pulse.1 + adjacency.1,
