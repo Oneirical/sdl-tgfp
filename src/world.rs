@@ -196,20 +196,26 @@ impl Manager {
 		y: i32,
 		z: i32,
 	) -> Result<MovementResult, MovementError> {
+		let (x, y, z) = map_wrap(x, y, z);
 		if self.get_character_at(x, y, z).is_some() {
 			// The Some can be unpacked here if we want to check for collisions.
 			Err(MovementError::HitWall)
-		} else if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
-			let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
-			let (wrap_x, wrap_y) = ((x + width) % width, (y + height) % height);
-			self.teleport_piece(character_ref, wrap_x, wrap_y, z)
 		} else {
 			let mut character = character_ref.borrow_mut();
 			character.x = x;
 			character.y = y;
 			character.z = z;
-			drop(character);
 			Ok(MovementResult::Move)
 		}
 	}
+}
+
+pub fn map_wrap(x: i32, y: i32, z: i32) -> (i32, i32, i32) {
+	let (x, y) = if x < 0 || y < 0 || x >= WORLD_COLS as i32 || y >= WORLD_ROWS as i32 {
+		let (width, height) = (WORLD_COLS as i32, WORLD_ROWS as i32);
+		((x + width) % width, (y + height) % height)
+	} else {
+		(x, y)
+	};
+	(x, y, z)
 }

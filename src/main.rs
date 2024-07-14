@@ -115,14 +115,7 @@ pub fn main() {
 	let mut zoom_amount = 0;
 	loop {
 		// Input processing
-		if input::world(
-			&mut event_pump,
-			&mut world_manager,
-			&mut input_mode,
-			&options,
-		)
-		.exit
-		{
+		if input::world(&mut event_pump, &mut world_manager).exit {
 			break;
 		};
 

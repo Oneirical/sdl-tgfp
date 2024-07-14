@@ -4,7 +4,7 @@ use sdl2::{
 	keyboard::{Keycode, Scancode},
 };
 
-use self::spell::{process_axioms, Species};
+use self::spell::{process_axioms, Species, Synapse};
 
 pub enum Mode {
 	Normal,
@@ -14,12 +14,7 @@ pub struct Result {
 	pub exit: bool,
 }
 
-pub fn world(
-	event_pump: &mut sdl2::EventPump,
-	world_manager: &world::Manager,
-	mode: &Mode,
-	options: &Options,
-) -> Result {
+pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -> Result {
 	for event in event_pump.poll_iter() {
 		match event {
 			Event::Quit { .. }
@@ -35,7 +30,11 @@ pub fn world(
 					if let Species::Keypress(key) = &axiom.borrow().species {
 						if Keycode::from_name(key).unwrap() == keycode {
 							process_axioms(
-								(axiom.borrow().x, axiom.borrow().y, axiom.borrow().z),
+								vec![Synapse::new(
+									axiom.borrow().x,
+									axiom.borrow().y,
+									axiom.borrow().z,
+								)],
 								world_manager,
 							);
 						}
