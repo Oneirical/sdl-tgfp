@@ -90,6 +90,7 @@ pub enum Species {
 
 	// Mutators
 	RealmShift(i32),
+	ClearThisCaster(Box<Species>),
 	// Functions
 	Teleport,
 	Twinning,
@@ -112,7 +113,6 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				None => continue,
 			};
 			let curr_ax_species = curr_axiom.borrow().species.clone();
-			dbg!(&curr_ax_species);
 			match &curr_ax_species {
 				Species::Keypress(_) => (),
 				// Anoint all creatures of a given Species.
@@ -125,21 +125,37 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 							.push(CasterTarget::new(creature.clone(), Vec::new()));
 					}
 				}
+				// All casters in the synapse turn into targets for the `species`.
 				Species::AnointToTarget(species) => {
 					let mut new_targets = Vec::new();
-					for CasterTarget { caster, targets: _ } in synapse.casters.iter_mut() {
-						let caster = caster.borrow_mut();
+					for CasterTarget { caster, targets: _ } in synapse.casters.iter() {
+						let caster = caster.borrow();
 						new_targets.push((caster.x, caster.y, caster.z)); // Grab the position of every caster
 						drop(caster);
 					}
-					synapse.casters.clear(); // Remove all casters and their targets
-						 // should this be restricted to Z level?
+					// synapse.casters.clear(); // Remove all casters and their targets
+					// should this be restricted to Z level?
 					let found = manager.get_characters_of_species(*species.clone());
 					for creature in found {
 						synapse.casters.push(CasterTarget {
 							caster: creature.clone(),
 							targets: new_targets.clone(),
 						});
+					}
+				}
+				// Remove all caster/targets pairs where the caster is `species`.
+				Species::ClearThisCaster(species) => {
+					let mut remove_indices = Vec::new();
+					let mut count = 0;
+					for CasterTarget { caster, targets: _ } in synapse.casters.iter() {
+						let caster = caster.borrow();
+						if caster.species == *species.clone() {
+							remove_indices.push(count);
+						}
+						count += 1;
+					}
+					for i in remove_indices {
+						synapse.casters.remove(i);
 					}
 				}
 				// Target an adjacent tile to each Caster.
@@ -248,8 +264,6 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 									Range::Global(input_message) => input_message,
 									_ => todo!(),
 								};
-								dbg!(axiom.z);
-								dbg!(pulse_z);
 								let current_z = manager.get_player_character().unwrap().borrow().z;
 								if *output_message == *input_message && axiom.z <= current_z {
 									// It can only broadcast to local or upper layers
@@ -271,20 +285,10 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 			for (i, adjacency) in search_order_ints.enumerate() {
 				let (new_pulse_x, new_pulse_y, new_pulse_z) =
 					map_wrap(pulse_x + adjacency.0, pulse_y + adjacency.1, pulse_z);
-				// dbg!(map_wrap(
-				// 	pulse_x + adjacency.0,
-				// 	pulse_y + adjacency.1,
-				// 	pulse_z
-				// ));
-				// dbg!(manager
-				// 	.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
-				// 	.is_some());
-				// dbg!(&visited);
 				if manager // Must contain an entity and not have been visited before.
 					.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
 					.is_some() && !visited.contains(&(new_pulse_x, new_pulse_y, new_pulse_z))
 				{
-					// dbg!("ha");
 					potential_new_axioms.push((
 						search_order.get(i).unwrap(),
 						(new_pulse_x, new_pulse_y, new_pulse_z),

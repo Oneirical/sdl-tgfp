@@ -1,1 +1,2 @@
 - A mirror room where a creature mirrors your every move to block you, should be easy to engineer your way past
+- A simple task, but where you are cramped and need to make your axiom as small as possible

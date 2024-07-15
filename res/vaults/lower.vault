@@ -2,12 +2,10 @@
 Character = "wall"
 
 # Layout
-   T
-   2#3T
-(  #
-*##1
-)  T
-T            
+ (  T
+)*123T
+T T 
+              
              
 #      !      #
 #      4      #

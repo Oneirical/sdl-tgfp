@@ -149,7 +149,7 @@ pub fn main() {
 			side_dim,
 		));
 		global_time += 1;
-		canvas.set_draw_color(Color::BLUE);
+		canvas.set_draw_color(Color::BLACK);
 		canvas
 			.fill_rect(Rect::new(0, 0, window_size.0, window_size.1))
 			.unwrap();
