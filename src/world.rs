@@ -8,7 +8,7 @@ use self::spell::Species;
 pub const WORLD_ROWS: usize = 16;
 pub const WORLD_COLS: usize = 16;
 
-pub type CharacterRef = RefCell<character::Piece>;
+pub type CharacterRef = std::rc::Rc<RefCell<character::Piece>>;
 
 /// This struct contains all information that is relevant during gameplay.
 #[derive(Clone, Debug)]
@@ -83,6 +83,13 @@ impl Manager {
 		})
 	}
 
+	pub fn get_player_character(&self) -> Option<&CharacterRef> {
+		self.characters.iter().find(|p| {
+			let p = p.borrow();
+			p.player_controlled
+		})
+	}
+
 	pub fn get_characters_of_species(
 		&self,
 		species: Species,
@@ -109,7 +116,7 @@ impl Manager {
 				species: species.clone(),
 				..character::Piece::new(resources.get_sheet("luvui").unwrap().clone(), resources)
 			};
-			self.characters.push(RefCell::new(piece));
+			self.characters.push(std::rc::Rc::new(RefCell::new(piece)));
 		}
 	}
 }

@@ -2,7 +2,6 @@ use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
 use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use sdltgfp::prelude::*;
 use sdltgfp::spell::match_axiom_with_codename;
-use sdltgfp::world::CharacterRef;
 use sdltgfp::world::{WORLD_COLS, WORLD_ROWS};
 use std::f32::consts::PI;
 use std::process::exit;
@@ -85,7 +84,9 @@ pub fn main() {
 		current_level: world::Level::default(),
 		characters: Vec::new(),
 	};
-	world_manager.characters.push(CharacterRef::new(player));
+	world_manager
+		.characters
+		.push(std::rc::Rc::new(std::cell::RefCell::new(player)));
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(
 		0,

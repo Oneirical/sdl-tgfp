@@ -100,9 +100,13 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 	let mut visited = Vec::new();
 	while !synapses.is_empty() {
 		let mut syn_count = 0;
-		for mut synapse in synapses.clone() {
+		// Create a temporary vector to hold new synapses
+		let mut new_synapses = Vec::new();
+		let mut synapses_to_remove = Vec::new();
+		for synapse in &mut synapses {
 			let (pulse_x, pulse_y, pulse_z) =
 				map_wrap(synapse.pulse.0, synapse.pulse.1, synapse.pulse.2);
+			visited.push((pulse_x, pulse_y, pulse_z));
 			let curr_axiom = match manager.get_character_at(pulse_x, pulse_y, pulse_z) {
 				Some(axiom) => axiom,
 				None => continue,
@@ -244,7 +248,11 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 									Range::Global(input_message) => input_message,
 									_ => todo!(),
 								};
-								if *output_message == *input_message {
+								dbg!(axiom.z);
+								dbg!(pulse_z);
+								let current_z = manager.get_player_character().unwrap().borrow().z;
+								if *output_message == *input_message && axiom.z <= current_z {
+									// It can only broadcast to local or upper layers
 									process_axioms(
 										vec![Synapse::new(axiom.x, axiom.y, axiom.z)],
 										manager,
@@ -263,21 +271,20 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 			for (i, adjacency) in search_order_ints.enumerate() {
 				let (new_pulse_x, new_pulse_y, new_pulse_z) =
 					map_wrap(pulse_x + adjacency.0, pulse_y + adjacency.1, pulse_z);
-				dbg!(map_wrap(
-					pulse_x + adjacency.0,
-					pulse_y + adjacency.1,
-					pulse_z
-				));
-				dbg!(manager
-					.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
-					.is_some());
-				dbg!(&visited);
+				// dbg!(map_wrap(
+				// 	pulse_x + adjacency.0,
+				// 	pulse_y + adjacency.1,
+				// 	pulse_z
+				// ));
+				// dbg!(manager
+				// 	.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
+				// 	.is_some());
+				// dbg!(&visited);
 				if manager // Must contain an entity and not have been visited before.
 					.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
 					.is_some() && !visited.contains(&(new_pulse_x, new_pulse_y, new_pulse_z))
 				{
-					dbg!("ha");
-					visited.push((new_pulse_x, new_pulse_y, new_pulse_z));
+					// dbg!("ha");
 					potential_new_axioms.push((
 						search_order.get(i).unwrap(),
 						(new_pulse_x, new_pulse_y, new_pulse_z),
@@ -285,12 +292,12 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				}
 			}
 			if potential_new_axioms.is_empty() {
-				synapses.remove(syn_count);
+				synapses_to_remove.push(syn_count);
 			} else {
 				synapse.momentum = *potential_new_axioms[0].0;
 				synapse.pulse = potential_new_axioms[0].1;
-				for new_synapse in 1..potential_new_axioms.len() - 1 {
-					synapses.push(Synapse {
+				for new_synapse in 1..potential_new_axioms.len() {
+					new_synapses.push(Synapse {
 						casters: synapse.casters.clone(),
 						momentum: *potential_new_axioms[new_synapse].0,
 						pulse: potential_new_axioms[new_synapse].1,
@@ -298,6 +305,16 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				}
 			}
 			syn_count += 1;
+		}
+
+		// Remove marked synapses from the original vector
+		for count in synapses_to_remove.into_iter().rev() {
+			synapses.remove(count);
+		}
+
+		// Add new synapses to the original vector
+		for synapse in new_synapses.drain(..) {
+			synapses.push(synapse);
 		}
 	}
 }
