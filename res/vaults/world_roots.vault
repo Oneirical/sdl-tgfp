@@ -1,5 +1,39 @@
 [symbols."#"]
-Character = "wall"
+Wall = []
+[symbols."^"]
+Keypress = "Up"
+[symbols."V"]
+Keypress = "Down"
+[symbols."<"]
+Keypress = "Left"
+[symbols.">"]
+Keypress = "Right"
+[symbols."R"]
+Keypress = "R"
+[symbols."X"]
+RadioBroadcaster = { Global = "EON" }
+[symbols."T"]
+Teleport = []
+[symbols."P"]
+SelectSpecies = { Terminal = [] }
+[symbols."N"]
+CardinalTargeter = { Up = [] }
+[symbols."S"]
+CardinalTargeter = { Down = [] }
+[symbols."O"]
+CardinalTargeter = { Left = [] }
+[symbols."E"]
+CardinalTargeter = { Right = [] }
+[symbols."@"]
+SelfTargeter = []
+[symbols."Z"]
+RealmShift = 1
+[symbols."C"]
+Keypress = "C"
+[symbols."+"]
+PlusTargeter = []
+[symbols."?"]
+Twinning = []
 
 # Layout
  CP+?
@@ -8,4 +42,4 @@ Character = "wall"
  # # # # R 
  P P P P P
  NTS OTE @
-  X   X  ZTX
+ X X X X ZTX

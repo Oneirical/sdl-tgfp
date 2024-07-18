@@ -1,8 +1,5 @@
-[symbols.a]
-Character = "aris"
-
 [symbols."#"]
-Tile = "Wall"
+Wall = []
 
 # Layout
   ###

@@ -11,6 +11,11 @@ pub struct Vault {
 	pub characters: Vec<(i32, i32, Species)>,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Metadata {
+	symbols: HashMap<char, Species>,
+}
+
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum Error {
 	#[error("vault is missing a layout section")]
@@ -31,7 +36,7 @@ impl Vault {
 		let vault_text = fs::read_to_string(path).unwrap();
 
 		// FIXME: Make this return 1 variable.
-		let (_please_remove_this, layout) = vault_text
+		let (symbols, layout) = vault_text
 			.split_once("# Layout\n")
 			.ok_or(Error::MissingLayout)?;
 
@@ -40,67 +45,17 @@ impl Vault {
 			width = width.max(line.len());
 		}
 
-		let mut characters = Vec::new();
+		let metadata: Metadata = toml::from_str(symbols)?;
 
-		let axiom_map = HashMap::from([
-			('>', Species::Keypress("Right".to_owned())),
-			('<', Species::Keypress("Left".to_owned())),
-			('V', Species::Keypress("Down".to_owned())),
-			('^', Species::Keypress("Up".to_owned())),
-			('T', Species::Teleport),
-			('?', Species::Twinning),
-			('!', Species::EpsilonHead),
-			('4', Species::EpsilonTail(1)),
-			('5', Species::EpsilonTail(2)),
-			('6', Species::EpsilonTail(3)),
-			(
-				'(',
-				Species::RadioReceiver(Range::Global("EON".to_string())),
-			),
-			('*', Species::SelectSpecies(Box::new(Species::EpsilonHead))),
-			(')', Species::PathfindTargeter(Box::new(Species::Terminal))),
-			(
-				'X',
-				Species::RadioBroadcaster(Range::Global("EON".to_string())),
-			),
-			('N', Species::CardinalTargeter(OrdDir::Up)),
-			('S', Species::CardinalTargeter(OrdDir::Down)),
-			('E', Species::CardinalTargeter(OrdDir::Right)),
-			('O', Species::CardinalTargeter(OrdDir::Left)),
-			('P', Species::SelectSpecies(Box::new(Species::Terminal))),
-			('%', Species::SelectSpecies(Box::new(Species::Teleport))),
-			('R', Species::Keypress("R".to_owned())),
-			('C', Species::Keypress("C".to_owned())),
-			('@', Species::SelfTargeter),
-			('+', Species::PlusTargeter),
-			('Z', Species::RealmShift(1)),
-			('W', Species::AnointToTarget(Box::new(Species::EpsilonHead))),
-			(
-				'1',
-				Species::AnointToTarget(Box::new(Species::EpsilonTail(1))),
-			),
-			(
-				'2',
-				Species::AnointToTarget(Box::new(Species::EpsilonTail(2))),
-			),
-			(
-				'3',
-				Species::AnointToTarget(Box::new(Species::EpsilonTail(3))),
-			),
-		]);
+		let mut characters = Vec::new();
 
 		for (y, line) in layout.lines().enumerate() {
 			for (x, c) in line.chars().enumerate() {
-				match c {
-					' ' => continue,
-					// FIXME: Remove the sheet argument.
-					'#' => characters.push((x as i32, y as i32, Species::Wall)),
-					_ => {
-						if let Some(axiom) = axiom_map.get(&c) {
-							characters.push((x as i32, y as i32, axiom.clone()));
-						} else {
-							return Err(Error::UnexpectedSymbol(c));
-						}
+				if let Some(symbol) = metadata.symbols.get(&c) {
+					characters.push((x as i32, y as i32, symbol.clone()))
+				} else {
+					if c != ' ' {
+						return Err(Error::UnexpectedSymbol(c));
 					}
 				}
 			}

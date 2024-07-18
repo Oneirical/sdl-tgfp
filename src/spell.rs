@@ -63,6 +63,7 @@ pub enum Range {
 	Contained(String),
 	Local(String),
 	Global(String),
+	Synaptic(String),
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -113,6 +114,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				None => continue,
 			};
 			let curr_ax_species = curr_axiom.borrow().species.clone();
+			dbg!(&curr_ax_species);
 			match &curr_ax_species {
 				Species::Keypress(_) => (),
 				// Anoint all creatures of a given Species.
@@ -260,17 +262,26 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 						for axiom in &manager.characters {
 							let axiom = &axiom.borrow();
 							if let Species::RadioReceiver(input_range) = &axiom.species {
-								let input_message = match input_range {
-									Range::Global(input_message) => input_message,
+								let (synapse_transmission, input_message) = match input_range {
+									Range::Global(input_message) => (
+										vec![Synapse::new(axiom.x, axiom.y, axiom.z)],
+										input_message,
+									),
+									Range::Synaptic(input_message) => (
+										// Continues the synapse to the new destination.
+										vec![Synapse {
+											casters: synapse.casters.clone(),
+											momentum: synapse.momentum,
+											pulse: (axiom.x, axiom.y, axiom.z),
+										}],
+										input_message,
+									),
 									_ => todo!(),
 								};
 								let current_z = manager.get_player_character().unwrap().borrow().z;
 								if *output_message == *input_message && axiom.z <= current_z {
 									// It can only broadcast to local or upper layers
-									process_axioms(
-										vec![Synapse::new(axiom.x, axiom.y, axiom.z)],
-										manager,
-									);
+									process_axioms(synapse_transmission, manager);
 								}
 							}
 						}
