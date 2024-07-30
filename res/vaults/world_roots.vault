@@ -15,7 +15,7 @@ RadioBroadcaster = { Global = "EON" }
 [symbols."T"]
 Teleport = []
 [symbols."P"]
-SelectSpecies = { Terminal = [] }
+SelectRealityAnchor = []
 [symbols."N"]
 CardinalTargeter = { Up = [] }
 [symbols."S"]

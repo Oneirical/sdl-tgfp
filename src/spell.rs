@@ -82,6 +82,7 @@ pub enum Species {
 	// Anointers
 	SelectSpecies(Box<Species>),
 	AnointToTarget(Box<Species>),
+	SelectRealityAnchor,
 
 	// Forms
 	PathfindTargeter(Box<Species>),
@@ -98,6 +99,7 @@ pub enum Species {
 	RadioBroadcaster(Range),
 }
 
+// Suggestion: store casters as Uuids instead of the actual Piece structs.
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 	let mut visited = Vec::new();
 	while !synapses.is_empty() {
@@ -114,7 +116,6 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				None => continue,
 			};
 			let curr_ax_species = curr_axiom.borrow().species.clone();
-			dbg!(&curr_ax_species);
 			match &curr_ax_species {
 				Species::Keypress(_) => (),
 				// Anoint all creatures of a given Species.
@@ -126,6 +127,14 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 							.casters
 							.push(CasterTarget::new(creature.clone(), Vec::new()));
 					}
+				}
+				Species::SelectRealityAnchor => {
+					let player = manager
+						.get_player_character()
+						.expect("The player does not exist");
+					synapse
+						.casters
+						.push(CasterTarget::new(player.clone(), Vec::new()));
 				}
 				// All casters in the synapse turn into targets for the `species`.
 				Species::AnointToTarget(species) => {

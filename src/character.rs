@@ -13,7 +13,6 @@ pub struct Piece {
 	pub y: i32,
 	pub z: i32,
 	pub next_action: Option<Action>,
-	pub player_controlled: bool,
 }
 
 impl Piece {
@@ -26,7 +25,6 @@ impl Piece {
 			y: 0,
 			z: 0,
 			next_action: None,
-			player_controlled: false,
 		}
 	}
 }

@@ -1,0 +1,20 @@
+
+[symbols."^"]
+Keypress = "Up"
+[symbols."V"]
+Keypress = "Down"
+[symbols."<"]
+Keypress = "Left"
+[symbols.">"]
+Keypress = "Right"
+[symbols."P"]
+SelectSpecies = { Terminal = [] }
+
+
+# Layout
+> ^ <   V 1 
+P        2
+E P P   P3
+X NTO   S
+  X X   T
+        X 

@@ -70,7 +70,6 @@ pub fn main() {
 		(Uuid::new_v4(), resources.get_sheet("aris").unwrap().clone()),
 	];
 	let player = character::Piece {
-		player_controlled: true,
 		species: spell::Species::Terminal,
 		..character::Piece::new(party[0].1.clone(), &resources)
 	};
@@ -80,6 +79,7 @@ pub fn main() {
 			floor: 0,
 		},
 		console: Console::default(),
+		reality_anchor: player.id,
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
@@ -181,7 +181,7 @@ pub fn main() {
 		];
 
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
-			if character.player_controlled {
+			if character.id == world_manager.reality_anchor {
 				curr_xy = (character.x, character.y);
 				curr_z = character.z;
 			}
@@ -228,7 +228,7 @@ pub fn main() {
 			if curr_z as i32 != character.z {
 				continue;
 			}
-			let (x, y) = if character.player_controlled {
+			let (x, y) = if character.id == world_manager.reality_anchor {
 				curr_xy = (character.x, character.y);
 				(
 					((tiles_in_viewport / 2) * (options.ui.tile_size)) as i32,
@@ -262,7 +262,7 @@ pub fn main() {
 			} * 16;
 			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
 			for (off_x, off_y) in areas {
-				if character.player_controlled {
+				if character.id == world_manager.reality_anchor {
 					// Prevent the main character from being drawn multiple times for the "looping world" effect.
 					if (off_x, off_y) != (0, 0) {
 						continue;
