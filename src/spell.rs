@@ -89,6 +89,7 @@ pub enum Species {
 	CardinalTargeter(OrdDir),
 	PlusTargeter,
 	SelfTargeter,
+	MomentumBeam,
 
 	// Mutators
 	RealmShift(i32),
@@ -96,6 +97,7 @@ pub enum Species {
 	// Functions
 	Teleport,
 	Twinning,
+	SwapAnchor,
 	RadioBroadcaster(Range),
 }
 
@@ -235,7 +237,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 						drop(caster);
 					}
 				}
-				// All Targets's Z coordinate get shifted to `realm`.
+				// All Targets's Z coordinates get shifted to `realm`.
 				Species::RealmShift(realm) => {
 					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
 						for tar in targets {
@@ -262,14 +264,46 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
 						drop(b_caster);
 						if let Some((x, y, z)) = find_closest_coordinate(&targets, (cx, cy, cz)) {
+							// This will return an intentional error if a collision happens.
+							// This collision could be used for a cool Contingency, like starting
+							// dialogue.
 							let _ = manager.teleport_piece(&caster, x, y, z);
+						}
+					}
+				}
+				// Swap the reality-anchor state of the Caster with its closest Target.
+				Species::SwapAnchor => {
+					for CasterTarget { caster, targets } in synapse.casters.iter() {
+						// Only targets with an entity should be candidates.
+						let targets = filter_targets_by_occupied(manager, &targets);
+						let b_caster = caster.borrow_mut();
+						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
+						// Find the closest entity that's on a target.
+						if let Some((x, y, z)) = find_closest_coordinate(&targets, (cx, cy, cz)) {
+							let mut reality_anchor = manager.reality_anchor.borrow_mut();
+							let caster_id = b_caster.id.clone();
+							drop(b_caster);
+							// If the caster is the anchor, give the anchor to the target.
+							if caster_id.eq(&reality_anchor) {
+								*reality_anchor =
+									manager.get_character_at(x, y, z).unwrap().borrow().id;
+							} else if manager
+								// But if the target is the anchor, steal their anchor for the caster.
+								.get_character_at(x, y, z)
+								.unwrap()
+								.borrow()
+								.id
+								.eq(&reality_anchor)
+							{
+								*reality_anchor = caster_id;
+							}
 						}
 					}
 				}
 				Species::RadioBroadcaster(output_range) => match output_range {
 					Range::Global(output_message) => {
 						for axiom in &manager.characters {
-							let axiom = &axiom.borrow();
+							let axiom = axiom.borrow();
 							if let Species::RadioReceiver(input_range) = &axiom.species {
 								let (synapse_transmission, input_message) = match input_range {
 									Range::Global(input_message) => (
@@ -290,6 +324,10 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 								let current_z = manager.get_player_character().unwrap().borrow().z;
 								if *output_message == *input_message && axiom.z <= current_z {
 									// It can only broadcast to local or upper layers
+
+									// Important to get this axiom out of scope as the new synapse
+									// could use it
+									drop(axiom);
 									process_axioms(synapse_transmission, manager);
 								}
 							}
@@ -389,6 +427,22 @@ fn filter_targets_by_unoccupied(
 		.iter()
 		.filter_map(|(x, y, z)| {
 			if manager.get_character_at(*x, *y, *z).is_none() {
+				Some((*x, *y, *z))
+			} else {
+				None
+			}
+		})
+		.collect()
+}
+
+fn filter_targets_by_occupied(
+	manager: &Manager,
+	targets: &[(i32, i32, i32)],
+) -> Vec<(i32, i32, i32)> {
+	targets
+		.iter()
+		.filter_map(|(x, y, z)| {
+			if manager.get_character_at(*x, *y, *z).is_some() {
 				Some((*x, *y, *z))
 			} else {
 				None

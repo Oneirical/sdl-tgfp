@@ -10,6 +10,8 @@ Keypress = "Left"
 Keypress = "Right"
 [symbols."R"]
 Keypress = "R"
+[symbols."Y"]
+Keypress = "Y"
 [symbols."X"]
 RadioBroadcaster = { Global = "EON" }
 [symbols."T"]
@@ -34,9 +36,14 @@ Keypress = "C"
 PlusTargeter = []
 [symbols."?"]
 Twinning = []
+[symbols."M"]
+# MomentumBeam = []
+CardinalTargeter = { Up = [] }
+[symbols."A"]
+SwapAnchor = []
 
 # Layout
- CP+?
+ CP+? YPMA
 
  ^ V < >
  # # # # R 

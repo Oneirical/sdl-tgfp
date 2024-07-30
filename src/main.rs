@@ -3,6 +3,7 @@ use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use sdltgfp::prelude::*;
 use sdltgfp::spell::match_axiom_with_codename;
 use sdltgfp::world::{WORLD_COLS, WORLD_ROWS};
+use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::process::exit;
 use tracing::*;
@@ -79,7 +80,7 @@ pub fn main() {
 			floor: 0,
 		},
 		console: Console::default(),
-		reality_anchor: player.id,
+		reality_anchor: RefCell::new(player.id),
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
@@ -181,7 +182,7 @@ pub fn main() {
 		];
 
 		for character in world_manager.characters.iter().map(|x| x.borrow()) {
-			if character.id == world_manager.reality_anchor {
+			if character.id == *world_manager.reality_anchor.borrow() {
 				curr_xy = (character.x, character.y);
 				curr_z = character.z;
 			}
@@ -228,7 +229,7 @@ pub fn main() {
 			if curr_z as i32 != character.z {
 				continue;
 			}
-			let (x, y) = if character.id == world_manager.reality_anchor {
+			let (x, y) = if character.id == *world_manager.reality_anchor.borrow() {
 				curr_xy = (character.x, character.y);
 				(
 					((tiles_in_viewport / 2) * (options.ui.tile_size)) as i32,
@@ -262,7 +263,7 @@ pub fn main() {
 			} * 16;
 			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
 			for (off_x, off_y) in areas {
-				if character.id == world_manager.reality_anchor {
+				if character.id == *world_manager.reality_anchor.borrow() {
 					// Prevent the main character from being drawn multiple times for the "looping world" effect.
 					if (off_x, off_y) != (0, 0) {
 						continue;
