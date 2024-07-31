@@ -125,8 +125,6 @@ pub fn main() {
 		// This is the only place where delta time should be used.
 		{
 			let delta = update_delta(&mut last_time, &mut current_time, &timer_subsystem);
-
-			world_manager.pop_action();
 			world_manager.console.update(delta);
 		}
 

@@ -37,8 +37,7 @@ PlusTargeter = []
 [symbols."?"]
 Twinning = []
 [symbols."M"]
-# MomentumBeam = []
-CardinalTargeter = { Up = [] }
+MomentumBeam = []
 [symbols."A"]
 SwapAnchor = []
 

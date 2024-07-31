@@ -148,37 +148,6 @@ pub enum AttackError {
 }
 
 impl Manager {
-	pub fn pop_action(&mut self) {
-		let next_character = self.next_character();
-
-		let Some(action) = next_character.borrow_mut().next_action.take() else {
-			return;
-		};
-		match action {
-			character::Action::Move(dir) => match self.move_piece(next_character, dir) {
-				Ok(MovementResult::Attack(AttackResult::Hit { message, weak })) => {
-					let colors = &self.console.colors;
-					self.console.print_colored(
-						message,
-						if weak {
-							colors.unimportant
-						} else {
-							colors.normal
-						},
-					);
-				}
-				Ok(_) => (),
-				Err(MovementError::HitWall) => {
-					let name = next_character.borrow().sheet.nouns.name.clone();
-					self.console.say(name, "Ouch!");
-				}
-				Err(MovementError::HitVoid) => {
-					self.console.print_system("You stare out into the void: an infinite expanse of nothingness enclosed within a single tile.");
-				}
-			},
-		};
-	}
-
 	/// # Errors
 	///
 	/// Fails if a wall or void is in the way, or if an implicit attack failed.
@@ -208,9 +177,12 @@ impl Manager {
 			Err(MovementError::HitWall)
 		} else {
 			let mut character = character_ref.borrow_mut();
+			let (ix, iy) = (character.x, character.y);
 			character.x = x;
 			character.y = y;
 			character.z = z;
+			let (dx, dy) = ((x - ix) as f64, (y - iy) as f64);
+			character.momentum = dy.atan2(dx);
 			Ok(MovementResult::Move)
 		}
 	}

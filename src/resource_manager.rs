@@ -49,7 +49,6 @@ struct TextureInfo<'texture> {
 pub struct ResourceManager<'texture> {
 	texture_creator: &'texture TextureCreator<WindowContext>,
 
-	attacks: Resource<Attack>,
 	spells: Resource<Spell>,
 	sheets: Resource<character::Sheet>,
 	textures: Resource<TextureInfo<'texture>>,
@@ -128,10 +127,6 @@ impl<'texture> ResourceManager<'texture> {
 			Ok(toml::from_str(&fs::read_to_string(path)?)?)
 		})?;
 
-		let attacks = register(&path.join("attacks"), &|path| {
-			Ok(toml::from_str(&fs::read_to_string(path)?)?)
-		})?;
-
 		let spells = register(&path.join("spells"), &|path| {
 			Ok(toml::from_str(&fs::read_to_string(path)?)?)
 		})?;
@@ -153,7 +148,6 @@ impl<'texture> ResourceManager<'texture> {
 		Ok(Self {
 			texture_creator,
 
-			attacks,
 			spells,
 			sheets,
 			textures,
@@ -165,10 +159,6 @@ impl<'texture> ResourceManager<'texture> {
 
 	pub fn get_sheet(&self, path: impl AsRef<Path>) -> Option<&character::Sheet> {
 		self.sheets.get(path.as_ref())
-	}
-
-	pub fn get_attack(&self, path: impl AsRef<Path>) -> Option<&Attack> {
-		self.attacks.get(path.as_ref())
 	}
 
 	pub fn get_spell(&self, path: impl AsRef<Path>) -> Option<&Spell> {

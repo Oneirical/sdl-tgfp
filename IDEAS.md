@@ -10,3 +10,6 @@ GLAMOUR
 - You need to possess Epsilon and make him run into his own tail.
 
 
+A preview mode that only shows what happens and the corresponding tiles if you do something, ignoring all Functions
+
+A later challenge should have a creature that excludes the tile it stands on from targets constantly, therefore, target addition maybe should be proxied through a wrapper to control this better.

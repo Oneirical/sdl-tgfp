@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::prelude::*;
 use uuid::Uuid;
 
@@ -12,7 +14,7 @@ pub struct Piece {
 	pub x: i32,
 	pub y: i32,
 	pub z: i32,
-	pub next_action: Option<Action>,
+	pub momentum: f64,
 }
 
 impl Piece {
@@ -24,7 +26,7 @@ impl Piece {
 			x: 0,
 			y: 0,
 			z: 0,
-			next_action: None,
+			momentum: PI / 2.,
 		}
 	}
 }

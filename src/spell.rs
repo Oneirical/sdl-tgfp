@@ -232,9 +232,20 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				// Target the tiles on which the Casters stand on.
 				Species::SelfTargeter => {
 					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
-						let caster = caster.borrow_mut();
+						let caster = caster.borrow();
 						targets.push((caster.x, caster.y, caster.z)); // No need for map_wrap, this always stays inbounds
-						drop(caster);
+					}
+				}
+				// Target tiles with a beam shooting from the Caster in the direction of their momentum.
+				Species::MomentumBeam => {
+					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
+						let caster = caster.borrow();
+						let mut beam = beam_from_point(
+							manager,
+							caster.momentum,
+							(caster.x, caster.y, caster.z),
+						);
+						targets.append(&mut beam);
 					}
 				}
 				// All Targets's Z coordinates get shifted to `realm`.
@@ -449,4 +460,37 @@ fn filter_targets_by_occupied(
 			}
 		})
 		.collect()
+}
+
+fn beam_from_point(manager: &Manager, angle: f64, origin: (i32, i32, i32)) -> Vec<(i32, i32, i32)> {
+	let increments = (angle.cos(), angle.sin());
+	let mut scale = 1.;
+	let mut out = Vec::new();
+	loop {
+		let new_point = (
+			origin.0 as f64 + increments.0 * scale,
+			origin.1 as f64 + increments.1 * scale,
+		);
+		let selected_tile = (
+			new_point.0.round() as i32,
+			new_point.1.round() as i32,
+			origin.2,
+		);
+		// This wrapping could cause an infinite loop... if there was absolutely no entity in the loop path.
+		let selected_tile = map_wrap(selected_tile.0, selected_tile.1, selected_tile.2);
+		out.push(selected_tile);
+		if manager
+			.get_character_at(selected_tile.0, selected_tile.1, selected_tile.2)
+			.is_some()
+		{
+			break;
+		}
+		scale += 1.;
+
+		if scale > 100. {
+			// Hardcoded maximum range, to avoid an infinite loop.
+			break;
+		}
+	}
+	out
 }
