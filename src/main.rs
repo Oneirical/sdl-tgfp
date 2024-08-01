@@ -74,20 +74,19 @@ pub fn main() {
 		species: spell::Species::Terminal,
 		..character::Piece::new(party[0].1.clone(), &resources)
 	};
+	let player_piece = std::rc::Rc::new(RefCell::new(player));
 	let mut world_manager = world::Manager {
 		location: world::Location {
 			level: String::from("New Level"),
 			floor: 0,
 		},
 		console: Console::default(),
-		reality_anchor: RefCell::new(player.id),
+		reality_anchor: player_piece.clone(),
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
 	};
-	world_manager
-		.characters
-		.push(std::rc::Rc::new(std::cell::RefCell::new(player)));
+	world_manager.characters.push(player_piece);
 	//world_manager.characters.push(CharacterRef::new(ally));
 	world_manager.apply_vault(
 		0,
@@ -179,8 +178,10 @@ pub fn main() {
 			(-world_width, -world_height),
 		];
 
-		for character in world_manager.characters.iter().map(|x| x.borrow()) {
-			if character.id == *world_manager.reality_anchor.borrow() {
+		for character in world_manager.characters.iter() {
+			let character_ptr = character.as_ptr();
+			let character = character.borrow();
+			if character_ptr == world_manager.reality_anchor.as_ptr() {
 				curr_xy = (character.x, character.y);
 				curr_z = character.z;
 			}
@@ -223,11 +224,13 @@ pub fn main() {
 		// 	}
 		// }
 		// Draw characters (normal)
-		for character in world_manager.characters.iter().map(|x| x.borrow()) {
+		for character in world_manager.characters.iter() {
+			let character_ptr = character.as_ptr();
+			let character = character.borrow();
 			if curr_z as i32 != character.z {
 				continue;
 			}
-			let (x, y) = if character.id == *world_manager.reality_anchor.borrow() {
+			let (x, y) = if character_ptr == world_manager.reality_anchor.as_ptr() {
 				curr_xy = (character.x, character.y);
 				(
 					((tiles_in_viewport / 2) * (options.ui.tile_size)) as i32,
@@ -261,7 +264,7 @@ pub fn main() {
 			} * 16;
 			let source_rect = Rect::new(texture_x, texture_y, 16, 16);
 			for (off_x, off_y) in areas {
-				if character.id == *world_manager.reality_anchor.borrow() {
+				if character_ptr == world_manager.reality_anchor.as_ptr() {
 					// Prevent the main character from being drawn multiple times for the "looping world" effect.
 					if (off_x, off_y) != (0, 0) {
 						continue;

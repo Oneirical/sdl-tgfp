@@ -131,9 +131,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 					}
 				}
 				Species::SelectRealityAnchor => {
-					let player = manager
-						.get_player_character()
-						.expect("The player does not exist");
+					let player = &manager.reality_anchor;
 					synapse
 						.casters
 						.push(CasterTarget::new(player.clone(), Vec::new()));
@@ -287,26 +285,28 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
 						// Only targets with an entity should be candidates.
 						let targets = filter_targets_by_occupied(manager, &targets);
-						let b_caster = caster.borrow_mut();
+						let b_caster = caster.borrow();
 						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
 						// Find the closest entity that's on a target.
 						if let Some((x, y, z)) = find_closest_coordinate(&targets, (cx, cy, cz)) {
-							let mut reality_anchor = manager.reality_anchor.borrow_mut();
-							let caster_id = b_caster.id.clone();
+							let anchor_ptr = manager.reality_anchor.as_ptr();
 							drop(b_caster);
 							// If the caster is the anchor, give the anchor to the target.
-							if caster_id.eq(&reality_anchor) {
-								*reality_anchor =
-									manager.get_character_at(x, y, z).unwrap().borrow().id;
+							if caster.as_ptr().eq(&anchor_ptr) {
+								let new_anchor = manager.get_character_at(x, y, z).unwrap();
+								if new_anchor.as_ptr() == caster.as_ptr() {
+									// Do not swap the caster with itself - this will crash the game.
+									continue;
+								}
+								manager.reality_anchor.swap(&new_anchor);
 							} else if manager
 								// But if the target is the anchor, steal their anchor for the caster.
 								.get_character_at(x, y, z)
 								.unwrap()
-								.borrow()
-								.id
-								.eq(&reality_anchor)
+								.as_ptr()
+								.eq(&anchor_ptr)
 							{
-								*reality_anchor = caster_id;
+								manager.reality_anchor.swap(caster);
 							}
 						}
 					}
@@ -332,7 +332,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 									),
 									_ => todo!(),
 								};
-								let current_z = manager.get_player_character().unwrap().borrow().z;
+								let current_z = manager.reality_anchor.borrow().z;
 								if *output_message == *input_message && axiom.z <= current_z {
 									// It can only broadcast to local or upper layers
 

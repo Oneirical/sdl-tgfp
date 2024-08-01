@@ -21,7 +21,7 @@ pub struct Manager {
 	// It might be useful to sort this by remaining action delay to make selecting the next character easier.
 	pub characters: Vec<CharacterRef>,
 	// The current player on which the world focuses on
-	pub reality_anchor: RefCell<Uuid>,
+	pub reality_anchor: CharacterRef,
 	/// Always point to the party's pieces, even across floors.
 	/// When exiting a dungeon, these sheets will be saved to a party struct.
 	pub console: Console,
@@ -83,10 +83,6 @@ impl Manager {
 			let p = p.borrow();
 			p.x == x && p.y == y && p.z == z
 		})
-	}
-
-	pub fn get_player_character(&self) -> Option<&CharacterRef> {
-		self.get_character(*self.reality_anchor.borrow())
 	}
 
 	pub fn get_characters_of_species(
