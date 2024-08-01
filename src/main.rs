@@ -7,7 +7,6 @@ use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::process::exit;
 use tracing::*;
-use uuid::Uuid;
 
 fn update_delta(
 	last_time: &mut f64,
@@ -63,16 +62,9 @@ pub fn main() {
 		Options::default()
 	});
 	// Create a piece for the player, and register it with the world manager.
-	let party = [
-		(
-			Uuid::new_v4(),
-			resources.get_sheet("luvui").unwrap().clone(),
-		),
-		(Uuid::new_v4(), resources.get_sheet("aris").unwrap().clone()),
-	];
 	let player = character::Piece {
 		species: spell::Species::Terminal,
-		..character::Piece::new(party[0].1.clone(), &resources)
+		..character::Piece::new(resources.get_sheet("luvui").unwrap().clone(), &resources)
 	};
 	let player_piece = std::rc::Rc::new(RefCell::new(player));
 	let mut world_manager = world::Manager {

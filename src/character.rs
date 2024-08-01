@@ -1,14 +1,12 @@
 use std::f64::consts::PI;
 
 use crate::prelude::*;
-use uuid::Uuid;
 
 use self::spell::Species;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Piece {
 	// These are nice and serializable :)
-	pub id: Uuid,
 	pub species: Species,
 	pub sheet: Sheet,
 	pub x: i32,
@@ -20,7 +18,6 @@ pub struct Piece {
 impl Piece {
 	pub fn new(sheet: Sheet, resources: &ResourceManager) -> Self {
 		Self {
-			id: Uuid::new_v4(),
 			species: Species::Wall,
 			sheet,
 			x: 0,

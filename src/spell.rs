@@ -101,7 +101,6 @@ pub enum Species {
 	RadioBroadcaster(Range),
 }
 
-// Suggestion: store casters as Uuids instead of the actual Piece structs.
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 	let mut visited = Vec::new();
 	while !synapses.is_empty() {

@@ -1,7 +1,6 @@
 use crate::character::OrdDir;
 use crate::prelude::*;
 use std::cell::RefCell;
-use uuid::Uuid;
 
 use self::spell::Species;
 
@@ -42,21 +41,6 @@ impl Default for Level {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct PartyReference {
-	/// The piece that is being used by this party member.
-	pub piece: Uuid,
-	/// This party member's ID within the party.
-	/// Used for saving data.
-	pub member: Uuid,
-}
-
-impl PartyReference {
-	pub fn new(piece: Uuid, member: Uuid) -> Self {
-		Self { piece, member }
-	}
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Location {
 	/// Which level is currently loaded.
 	///
@@ -67,17 +51,11 @@ pub struct Location {
 }
 
 impl Manager {
-	// Returns none if no entity with the given uuid is currently loaded.
-	// This either mean they no longer exist, or they're on a different floor;
-	// either way they cannot be referenced.
-	pub fn get_character(&self, id: Uuid) -> Option<&CharacterRef> {
-		self.characters.iter().find(|x| x.borrow().id == id)
-	}
-
 	pub fn next_character(&self) -> &CharacterRef {
 		&self.characters[0]
 	}
 
+	// Returns none if no entity is at the specified coordinates.
 	pub fn get_character_at(&self, x: i32, y: i32, z: i32) -> Option<&CharacterRef> {
 		self.characters.iter().find(|p| {
 			let p = p.borrow();
