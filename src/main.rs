@@ -77,6 +77,7 @@ pub fn main() {
 
 		current_level: world::Level::default(),
 		characters: Vec::new(),
+		effects: RefCell::new(Vec::new()),
 	};
 	world_manager.characters.push(player_piece);
 	//world_manager.characters.push(CharacterRef::new(ally));
@@ -88,7 +89,7 @@ pub fn main() {
 		&resources,
 	);
 	world_manager.apply_vault(0, 0, 1, resources.get_vault("lower").unwrap(), &resources);
-	let spritesheet = resources.get_texture("spritesheet");
+	let mut spritesheet = resources.get_owned_texture("spritesheet").unwrap();
 	let font = ttf_context
 		.load_font_from_rwops(
 			RWops::from_bytes(include_bytes!(
@@ -263,7 +264,7 @@ pub fn main() {
 					}
 					canvas
 						.copy(
-							spritesheet,
+							&spritesheet,
 							Some(source_rect),
 							Some(Rect::new(x, y, options.ui.tile_size, options.ui.tile_size)),
 						)
@@ -272,7 +273,7 @@ pub fn main() {
 				}
 				canvas
 					.copy(
-						spritesheet,
+						&spritesheet,
 						Some(source_rect),
 						Some(Rect::new(
 							off_x + x - zoom_amount * 16,
@@ -284,7 +285,38 @@ pub fn main() {
 					.unwrap();
 			}
 		}
-
+		// Draw fading tile effects
+		for effect in world_manager.effects.borrow_mut().iter_mut() {
+			let (x, y) = (
+				(effect.x - curr_xy.0 + wi_width as i32 / 2 / options.ui.tile_size as i32)
+					* (zoom_amount + options.ui.tile_size as i32),
+				(effect.y - curr_xy.1 + wi_height as i32 / 2 / options.ui.tile_size as i32)
+					* (zoom_amount + options.ui.tile_size as i32),
+			);
+			let texture_x = match effect.texture {
+				animation::EffectType::Red => 14,
+				animation::EffectType::Lime => 13,
+			} * 16;
+			let source_rect = Rect::new(texture_x, 0, 16, 16);
+			spritesheet.set_alpha_mod(effect.alpha);
+			for (off_x, off_y) in areas {
+				canvas
+					.copy(
+						&spritesheet,
+						Some(source_rect),
+						Some(Rect::new(
+							off_x + x - zoom_amount * 16,
+							off_y + y - zoom_amount * 16,
+							options.ui.tile_size + zoom_amount as u32,
+							options.ui.tile_size + zoom_amount as u32,
+						)),
+					)
+					.unwrap();
+			}
+			effect.alpha = effect.alpha.checked_sub(10).unwrap_or_default();
+		}
+		// Restore opacity after effects loop.
+		spritesheet.set_alpha_mod(255);
 		// Render User Interface
 		canvas.set_viewport(None);
 

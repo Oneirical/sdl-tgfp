@@ -6,6 +6,7 @@
 	clippy::inconsistent_struct_constructor
 )]
 
+pub mod animation;
 pub mod character;
 pub mod console;
 pub mod gui;

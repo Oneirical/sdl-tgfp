@@ -2,6 +2,7 @@ use crate::character::OrdDir;
 use crate::prelude::*;
 use std::cell::RefCell;
 
+use self::animation::TileEffect;
 use self::spell::Species;
 
 pub const WORLD_ROWS: usize = 16;
@@ -24,6 +25,7 @@ pub struct Manager {
 	/// Always point to the party's pieces, even across floors.
 	/// When exiting a dungeon, these sheets will be saved to a party struct.
 	pub console: Console,
+	pub effects: RefCell<Vec<TileEffect>>,
 }
 
 /// Contains information about what should generate on each floor.

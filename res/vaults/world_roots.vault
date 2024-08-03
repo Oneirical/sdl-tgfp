@@ -40,9 +40,11 @@ Twinning = []
 MomentumBeam = []
 [symbols."A"]
 SwapAnchor = []
+[symbols."F"]
+Fireworks = []
 
 # Layout
- CP+? YPMA
+ CP+? YPMFA
 
  ^ V < >
  # # # # R 

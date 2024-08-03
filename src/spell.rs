@@ -1,4 +1,5 @@
 use crate::{
+	animation::TileEffect,
 	character::OrdDir,
 	world::{map_wrap, CharacterRef, Manager},
 };
@@ -99,6 +100,7 @@ pub enum Species {
 	Twinning,
 	SwapAnchor,
 	RadioBroadcaster(Range),
+	Fireworks,
 }
 
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
@@ -276,6 +278,19 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 							// This collision could be used for a cool Contingency, like starting
 							// dialogue.
 							let _ = manager.teleport_piece(&caster, x, y, z);
+						}
+					}
+				}
+				Species::Fireworks => {
+					for CasterTarget { caster: _, targets } in synapse.casters.iter() {
+						for tar in targets {
+							manager.effects.borrow_mut().push(TileEffect {
+								x: tar.0,
+								y: tar.1,
+								z: tar.2,
+								alpha: 255,
+								texture: crate::animation::EffectType::Red,
+							});
 						}
 					}
 				}
