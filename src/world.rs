@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use crate::character::OrdDir;
 use crate::prelude::*;
 use std::cell::RefCell;
@@ -53,6 +55,14 @@ pub struct Location {
 }
 
 impl Manager {
+	pub fn dump_characters(&self) {
+		let mut output = String::new();
+		for c in self.characters.iter() {
+			output.push_str(&toml::to_string(&*c.borrow()).unwrap());
+		}
+		std::fs::write("save.toml", output).unwrap();
+	}
+	
 	pub fn next_character(&self) -> &CharacterRef {
 		&self.characters[0]
 	}

@@ -2,6 +2,8 @@
 Wall = []
 [symbols."T"]
 Teleport = []
+[symbols."E"]
+AnointToTarget = { EpsilonHead = [] }
 [symbols."1"]
 AnointToTarget = { EpsilonTail = 1 }
 [symbols."2"]
@@ -12,17 +14,22 @@ AnointToTarget = { EpsilonTail = 3 }
 EpsilonTail = 1
 [symbols."!"]
 EpsilonHead = []
+[symbols."P"]
+PathfindTargeter = { Terminal = [] }
 [symbols."5"]
 EpsilonTail = 2
 [symbols."6"]
 EpsilonTail = 3
 [symbols."&"]
 RadioReceiver = { Synaptic = "EON" }
+[symbols."R"]
+RadioReceiver = { Global = "EON" }
 
 # Layout
-    T
- &123T
-T T 
+
+ R T
+PE123T   
+T T
               
              
 #      !      #

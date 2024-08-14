@@ -13,3 +13,9 @@ GLAMOUR
 A preview mode that only shows what happens and the corresponding tiles if you do something, ignoring all Functions
 
 A later challenge should have a creature that excludes the tile it stands on from targets constantly, therefore, target addition maybe should be proxied through a wrapper to control this better.
+
+Epsilon's synapse protected by a sentry that zaps with the undo mechanic
+
+Find a way to get Epsilon's tail to enter a restricted area
+
+"copy paste" axiom ability: use it to put Synaptic on Epsilon's axiom

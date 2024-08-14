@@ -15,6 +15,7 @@ pub struct Result {
 }
 
 pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -> Result {
+	world_manager.dump_characters();
 	for event in event_pump.poll_iter() {
 		match event {
 			Event::Quit { .. }

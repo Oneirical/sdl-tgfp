@@ -8,7 +8,6 @@ use self::spell::Species;
 pub struct Piece {
 	// These are nice and serializable :)
 	pub species: Species,
-	pub sheet: Sheet,
 	pub x: i32,
 	pub y: i32,
 	pub z: i32,
@@ -19,7 +18,6 @@ impl Piece {
 	pub fn new(sheet: Sheet, resources: &ResourceManager) -> Self {
 		Self {
 			species: Species::Wall,
-			sheet,
 			x: 0,
 			y: 0,
 			z: 0,
