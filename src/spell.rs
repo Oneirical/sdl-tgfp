@@ -1,7 +1,7 @@
 use crate::{
 	animation::TileEffect,
 	character::OrdDir,
-	world::{map_wrap, CharacterRef, Manager},
+	world::{map_wrap, CharacterRef, Manager, SavePayload},
 };
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -101,6 +101,8 @@ pub enum Species {
 	SwapAnchor,
 	RadioBroadcaster(Range),
 	Fireworks,
+	SaveGame,
+	LoadGame,
 }
 
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
@@ -158,13 +160,13 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 				// Remove all caster/targets pairs where the caster is `species`.
 				Species::ClearThisCaster(species) => {
 					let mut remove_indices = Vec::new();
-					let mut count = 0;
-					for CasterTarget { caster, targets: _ } in synapse.casters.iter() {
+					for (count, CasterTarget { caster, targets: _ }) in
+						synapse.casters.iter().enumerate()
+					{
 						let caster = caster.borrow();
 						if caster.species == *species.clone() {
 							remove_indices.push(count);
 						}
-						count += 1;
 					}
 					for i in remove_indices {
 						synapse.casters.remove(i);
@@ -281,6 +283,26 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 						}
 					}
 				}
+				// Dump the world state to save.toml.
+				Species::SaveGame => {
+					manager.dump_characters();
+				}
+				// Rewind the world state as it is stored in save.toml.
+				Species::LoadGame => {
+					if std::path::Path::new("save.toml").exists() {
+						let saved_chars = std::fs::read_to_string("save.toml").unwrap();
+						let saved_manager: SavePayload = toml::from_str(&saved_chars).unwrap();
+						assert_eq!(manager.characters.len(), saved_manager.characters.len(),
+							"Due to the immutability of manager, the vec of characters cannot have its size changed, \
+							so every character in it gets transformed instead."
+						);
+						manager.reality_anchor.swap(&saved_manager.reality_anchor);
+						for (i, saved_character) in saved_manager.characters.iter().enumerate() {
+							manager.characters[i].swap(saved_character);
+						}
+					}
+				}
+				// Add a fading tile effect to each Target.
 				Species::Fireworks => {
 					for CasterTarget { caster: _, targets } in synapse.casters.iter() {
 						for tar in targets {
