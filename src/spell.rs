@@ -74,6 +74,7 @@ pub enum Species {
 	WorldStem,
 	EpsilonHead,
 	EpsilonTail(usize),
+	WatchBot,
 	// AXIOMS
 
 	// Contingencies
@@ -91,10 +92,13 @@ pub enum Species {
 	PlusTargeter,
 	SelfTargeter,
 	MomentumBeam,
+	SpecificCoord((i32, i32, i32)),
 
 	// Mutators
 	RealmShift(i32),
 	ClearThisCaster(Box<Species>),
+	Orbit(usize),
+
 	// Functions
 	Teleport,
 	Twinning,
@@ -172,15 +176,22 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 						synapse.casters.remove(i);
 					}
 				}
+				// Target this specific coordinate.
+				Species::SpecificCoord((x, y, z)) => {
+					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
+						targets.push(map_wrap(*x, *y, *z));
+					}
+				}
 				// Target an adjacent tile to each Caster.
 				Species::CardinalTargeter(dir) => {
 					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
-						let caster = caster.borrow_mut();
+						let caster = caster.borrow();
 						let offset = dir.as_offset();
 						targets.push(map_wrap(caster.x + offset.0, caster.y + offset.1, caster.z));
 						drop(caster);
 					}
 				}
+				// Target the adjacent tile closest to the nearest representative of `species`.
 				Species::PathfindTargeter(species) => {
 					let found = manager.get_characters_of_species(*species.clone());
 					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {

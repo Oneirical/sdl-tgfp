@@ -24,17 +24,21 @@ EpsilonTail = 3
 RadioReceiver = { Synaptic = "EON" }
 [symbols."R"]
 RadioReceiver = { Global = "EON" }
+[symbols."W"]
+WatchBot = [] 
 
 # Layout
-
- R T
-PE123T   
-T T
-              
-             
-#      !      #
-#      4      #
-#      5      #
-#      6      #
-#             #
-###############
+ ###   ###
+ #       #
+ #  R T  #
+   PE123   
+ # T T T #
+ #       #    
+ ###   ###   
+               
+   W   !
+       4      
+       5       
+       6       
+               
+ 
