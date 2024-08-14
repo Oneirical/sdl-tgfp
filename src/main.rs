@@ -28,7 +28,7 @@ pub fn main() {
 	let video_subsystem = sdl_context.video().unwrap();
 	let timer_subsystem = sdl_context.timer().unwrap();
 	let window = video_subsystem
-		.window("SDL TGFP", 1280, 720)
+		.window("SDL TGFP", 128, 72) // 1280 720 REMOVE THIS
 		.resizable()
 		.position_centered()
 		.build()
@@ -79,16 +79,25 @@ pub fn main() {
 		characters: Vec::new(),
 		effects: RefCell::new(Vec::new()),
 	};
-	world_manager.characters.push(player_piece);
-	//world_manager.characters.push(CharacterRef::new(ally));
-	world_manager.apply_vault(
-		0,
-		0,
-		0,
-		resources.get_vault("world_roots").unwrap(),
-		&resources,
-	);
-	world_manager.apply_vault(0, 0, 1, resources.get_vault("lower").unwrap(), &resources);
+
+	if std::path::Path::new("save.toml").exists() {
+		let saved_chars = std::fs::read_to_string("save.toml").unwrap();
+		let saved_manager: world::SavePayload = toml::from_str(&saved_chars).unwrap();
+		world_manager.characters = saved_manager.characters;
+		world_manager.reality_anchor = saved_manager.reality_anchor;
+	} else {
+		world_manager.characters.push(player_piece);
+		//world_manager.characters.push(CharacterRef::new(ally));
+		world_manager.apply_vault(
+			0,
+			0,
+			0,
+			resources.get_vault("world_roots").unwrap(),
+			&resources,
+		);
+		world_manager.apply_vault(0, 0, 1, resources.get_vault("lower").unwrap(), &resources);
+	}
+
 	let mut spritesheet = resources.get_owned_texture("spritesheet").unwrap();
 	let font = ttf_context
 		.load_font_from_rwops(
@@ -112,6 +121,7 @@ pub fn main() {
 		if input::world(&mut event_pump, &mut world_manager).exit {
 			break;
 		};
+		continue; // REMOVE THIS
 
 		// Logic
 		// This is the only place where delta time should be used.

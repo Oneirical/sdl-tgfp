@@ -36,6 +36,13 @@ pub struct Level {
 	pub name: String,
 }
 
+/// Contains the data to dump to a toml save file.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SavePayload {
+	pub characters: Vec<CharacterRef>,
+	pub reality_anchor: CharacterRef,
+}
+
 impl Default for Level {
 	fn default() -> Self {
 		Self {
@@ -56,13 +63,14 @@ pub struct Location {
 
 impl Manager {
 	pub fn dump_characters(&self) {
-		let mut output = String::new();
-		for c in self.characters.iter() {
-			output.push_str(&toml::to_string(&*c.borrow()).unwrap());
-		}
+		let output = toml::to_string(&SavePayload {
+			characters: self.characters.clone(),
+			reality_anchor: self.reality_anchor.clone(),
+		})
+		.unwrap();
 		std::fs::write("save.toml", output).unwrap();
 	}
-	
+
 	pub fn next_character(&self) -> &CharacterRef {
 		&self.characters[0]
 	}
