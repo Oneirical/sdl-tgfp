@@ -42,12 +42,20 @@ MomentumBeam = []
 SwapAnchor = []
 [symbols."F"]
 Fireworks = []
+[symbols."B"]
+Keypress = "B"
+[symbols."%"]
+SaveGame = []
+[symbols."G"]
+Keypress = "G"
+[symbols."&"]
+LoadGame = []
 
 # Layout
- CP+? YPMFA
-
- ^ V < >
- # # # # R 
- P P P P P
+ CP+? YPMFA B
+            %
+ ^ V < >   
+ # # # # R  &
+ P P P P P  G
  NTS OTE @
   X   X  ZTX

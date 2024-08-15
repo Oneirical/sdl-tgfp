@@ -1,3 +1,4 @@
+use character::Piece;
 use sdl2::{pixels::Color, rect::Rect, rwops::RWops};
 use sdltgfp::options::{RESOURCE_DIRECTORY, USER_DIRECTORY};
 use sdltgfp::prelude::*;
@@ -28,7 +29,7 @@ pub fn main() {
 	let video_subsystem = sdl_context.video().unwrap();
 	let timer_subsystem = sdl_context.timer().unwrap();
 	let window = video_subsystem
-		.window("SDL TGFP", 128, 72) // 1280 720 REMOVE THIS
+		.window("SDL TGFP", 1280, 720)
 		.resizable()
 		.position_centered()
 		.build()
@@ -84,7 +85,17 @@ pub fn main() {
 		let saved_chars = std::fs::read_to_string("save.toml").unwrap();
 		let saved_manager: world::SavePayload = toml::from_str(&saved_chars).unwrap();
 		world_manager.characters = saved_manager.characters;
-		world_manager.reality_anchor = saved_manager.reality_anchor;
+		// Locate the player among the saved characters.
+		for candidate in world_manager.characters.iter() {
+			let character = candidate.borrow();
+			let (x, y, z) = (character.x, character.y, character.z);
+			let compare_anchor = saved_manager.reality_anchor.borrow();
+			let (cx, cy, cz) = (compare_anchor.x, compare_anchor.y, compare_anchor.z);
+			// Should it ever be possible for multiple creatures to have the same xyz, this will break.
+			if x == cx && y == cy && z == cz {
+				world_manager.reality_anchor = candidate.clone();
+			}
+		}
 	} else {
 		world_manager.characters.push(player_piece);
 		//world_manager.characters.push(CharacterRef::new(ally));
@@ -121,7 +132,6 @@ pub fn main() {
 		if input::world(&mut event_pump, &mut world_manager).exit {
 			break;
 		};
-		continue; // REMOVE THIS
 
 		// Logic
 		// This is the only place where delta time should be used.

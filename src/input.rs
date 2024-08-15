@@ -27,16 +27,12 @@ pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -
 				..
 			} => {
 				for axiom in &world_manager.characters {
-					if let Species::Keypress(key) = &axiom.borrow().species {
+					let axiom = axiom.borrow();
+					let (x, y, z, species) = (axiom.x, axiom.y, axiom.z, &axiom.species);
+					if let Species::Keypress(key) = species {
 						if Keycode::from_name(key).unwrap() == keycode {
-							process_axioms(
-								vec![Synapse::new(
-									axiom.borrow().x,
-									axiom.borrow().y,
-									axiom.borrow().z,
-								)],
-								world_manager,
-							);
+							drop(axiom);
+							process_axioms(vec![Synapse::new(x, y, z)], world_manager);
 						}
 					}
 				}
