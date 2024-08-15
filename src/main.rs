@@ -79,6 +79,7 @@ pub fn main() {
 		current_level: world::Level::default(),
 		characters: Vec::new(),
 		effects: RefCell::new(Vec::new()),
+		turn_count: RefCell::new(world::TurnCounter { turns: 0 }),
 	};
 
 	if std::path::Path::new("save.toml").exists() {
@@ -90,6 +91,9 @@ pub fn main() {
 			.locate_player(&saved_manager)
 			.expect("The player did not exist in the save file")
 			.clone();
+		world_manager.turn_count = RefCell::new(world::TurnCounter {
+			turns: saved_manager.turn_count,
+		});
 	} else {
 		world_manager.characters.push(player_piece);
 		//world_manager.characters.push(CharacterRef::new(ally));

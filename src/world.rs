@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 use crate::character::OrdDir;
 use crate::prelude::*;
 use std::cell::RefCell;
@@ -28,6 +26,7 @@ pub struct Manager {
 	/// When exiting a dungeon, these sheets will be saved to a party struct.
 	pub console: Console,
 	pub effects: RefCell<Vec<TileEffect>>,
+	pub turn_count: RefCell<TurnCounter>,
 }
 
 /// Contains information about what should generate on each floor.
@@ -41,6 +40,13 @@ pub struct Level {
 pub struct SavePayload {
 	pub characters: Vec<CharacterRef>,
 	pub reality_anchor: CharacterRef,
+	pub turn_count: usize,
+}
+
+/// The total number of turns elapsed, incremented with TurnIncrementer.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct TurnCounter {
+	pub turns: usize,
 }
 
 impl Default for Level {
@@ -66,6 +72,7 @@ impl Manager {
 		let output = toml::to_string(&SavePayload {
 			characters: self.characters.clone(),
 			reality_anchor: self.reality_anchor.clone(),
+			turn_count: self.turn_count.borrow().turns,
 		})
 		.unwrap();
 		std::fs::write("save.toml", output).unwrap();

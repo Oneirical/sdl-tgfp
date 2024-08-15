@@ -13,7 +13,7 @@ Keypress = "R"
 [symbols."Y"]
 Keypress = "Y"
 [symbols."X"]
-RadioBroadcaster = { Global = "EON" }
+TurnIncrementer = []
 [symbols."T"]
 Teleport = []
 [symbols."P"]

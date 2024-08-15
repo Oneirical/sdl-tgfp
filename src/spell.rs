@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::{
 	animation::TileEffect,
 	character::OrdDir,
@@ -80,6 +82,7 @@ pub enum Species {
 	// Contingencies
 	Keypress(String),
 	RadioReceiver(Range),
+	OnTurn,
 
 	// Anointers
 	SelectSpecies(Box<Species>),
@@ -107,10 +110,30 @@ pub enum Species {
 	Fireworks,
 	SaveGame,
 	LoadGame,
+	TurnIncrementer,
 }
 
 pub struct Result {
 	pub new_manager: Option<crate::world::Manager>,
+}
+
+pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Result {
+	let mut new_manager = None;
+	for axiom in &world_manager.characters {
+		let axiom = axiom.borrow();
+		let (x, y, z, species) = (axiom.x, axiom.y, axiom.z, &axiom.species);
+		if species == contingency {
+			match contingency {
+				Species::OnTurn => {
+					drop(axiom);
+					new_manager =
+						process_axioms(vec![Synapse::new(x, y, z)], world_manager).new_manager;
+				}
+				_ => (),
+			}
+		}
+	}
+	Result { new_manager }
 }
 
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
@@ -273,6 +296,24 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 						}
 					}
 				}
+				// Each target becomes the centre of a circle of `radius`, and is replaced
+				// by a new target on that circle corresponding to the turn count.
+				// NOTE: Could be cool to add an `arc_length` for slashes.
+				Species::Orbit(radius) => {
+					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
+						for tar in targets {
+							let circle = circle_around(tar, radius);
+							// "% radius" so that bigger circles are slower to traverse. May need adaptation.
+							let offset = (*radius as f64
+								/ (manager.turn_count.borrow().turns % radius) as f64
+								* circle.len() as f64) as usize;
+							let orbit_point = circle
+								.get(offset)
+								.expect("The measured offset was out of bounds");
+							(tar.0, tar.1, tar.2) = (orbit_point.0, orbit_point.1, orbit_point.2);
+						}
+					}
+				}
 				// Transform each Target into a clone of the Caster.
 				Species::Twinning => {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
@@ -330,6 +371,9 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 							console: manager.console.clone(),
 							effects: manager.effects.clone(),
 							location: manager.location.clone(),
+							turn_count: RefCell::new(crate::world::TurnCounter {
+								turns: saved_manager.turn_count,
+							}),
 						});
 					}
 				}
@@ -378,6 +422,11 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 						}
 					}
 				}
+				Species::TurnIncrementer => {
+					let mut turn_counter = manager.turn_count.borrow_mut();
+					turn_counter.turns += 1;
+					new_manager = trigger_contingency(manager, &Species::OnTurn).new_manager;
+				}
 				Species::RadioBroadcaster(output_range) => match output_range {
 					Range::Global(output_message) => {
 						for axiom in &manager.characters {
@@ -406,7 +455,8 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 									// Important to get this axiom out of scope as the new synapse
 									// could use it
 									drop(axiom);
-									process_axioms(synapse_transmission, manager);
+									new_manager =
+										process_axioms(synapse_transmission, manager).new_manager;
 								}
 							}
 						}
@@ -496,6 +546,10 @@ fn find_closest_coordinate(
 	}
 
 	closest_coordinate
+}
+
+fn circle_around(centre: &(i32, i32, i32), radius: &usize) -> Vec<(i32, i32, i32)> {
+	todo!()
 }
 
 fn filter_targets_by_unoccupied(
