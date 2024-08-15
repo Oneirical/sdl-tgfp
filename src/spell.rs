@@ -258,15 +258,13 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 					let offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)];
 					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
 						let caster = caster.borrow_mut();
-						for i in 0..3 {
-							let offset = offsets[i];
+						for offset in offsets {
 							targets.push(map_wrap(
 								caster.x + offset.0,
 								caster.y + offset.1,
 								caster.z,
 							));
 						}
-						drop(caster);
 					}
 				}
 				// Target the tiles on which the Casters stand on.
@@ -302,11 +300,15 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 				Species::Orbit(radius) => {
 					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
 						for tar in targets {
-							let circle = circle_around(tar, radius);
-							// "% radius" so that bigger circles are slower to traverse. May need adaptation.
-							let offset = (*radius as f64
-								/ (manager.turn_count.borrow().turns % radius) as f64
-								* circle.len() as f64) as usize;
+							let mut circle = circle_around(tar, *radius as i32);
+							// Sort by clockwise rotation.
+							circle.sort_by(|a, b| {
+								let angle_a = angle_from_center(tar, a);
+								let angle_b = angle_from_center(tar, b);
+								angle_a.partial_cmp(&angle_b).unwrap()
+							});
+							// "% circle.len()" so that bigger circles are slower to traverse. May need adaptation.
+							let offset = manager.turn_count.borrow().turns % circle.len();
 							let orbit_point = circle
 								.get(offset)
 								.expect("The measured offset was out of bounds");
@@ -328,7 +330,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 				// Teleport each Caster to its closest Target.
 				Species::Teleport => {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
-						let targets = filter_targets_by_unoccupied(manager, &targets);
+						let targets = filter_targets_by_unoccupied(manager, targets);
 						let b_caster = caster.borrow_mut();
 						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
 						drop(b_caster);
@@ -336,7 +338,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 							// This will return an intentional error if a collision happens.
 							// This collision could be used for a cool Contingency, like starting
 							// dialogue.
-							let _ = manager.teleport_piece(&caster, x, y, z);
+							let _ = manager.teleport_piece(caster, x, y, z);
 						}
 					}
 				}
@@ -395,7 +397,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 				Species::SwapAnchor => {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
 						// Only targets with an entity should be candidates.
-						let targets = filter_targets_by_occupied(manager, &targets);
+						let targets = filter_targets_by_occupied(manager, targets);
 						let b_caster = caster.borrow();
 						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
 						// Find the closest entity that's on a target.
@@ -409,7 +411,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 									// Do not swap the caster with itself - this will crash the game.
 									continue;
 								}
-								manager.reality_anchor.swap(&new_anchor);
+								manager.reality_anchor.swap(new_anchor);
 							} else if manager
 								// But if the target is the anchor, steal their anchor for the caster.
 								.get_character_at(x, y, z)
@@ -514,6 +516,7 @@ fn manhattan_distance(a: (i32, i32, i32), b: (i32, i32, i32)) -> i32 {
 	(a.0 - b.0).abs() + (a.1 - b.1).abs() + (a.2 - b.2).abs()
 }
 
+/// From `start`, find the four rotations in a clockwise direction.
 fn generate_clockwise_rotation(start: OrdDir) -> [OrdDir; 4] {
 	fn rotate(dir: OrdDir) -> OrdDir {
 		match dir {
@@ -531,6 +534,7 @@ fn generate_clockwise_rotation(start: OrdDir) -> [OrdDir; 4] {
 	]
 }
 
+/// Find the tile with the shortest Manhattan distance to `target`.
 fn find_closest_coordinate(
 	coordinates: &[(i32, i32, i32)],
 	target: (i32, i32, i32),
@@ -548,10 +552,42 @@ fn find_closest_coordinate(
 	closest_coordinate
 }
 
-fn circle_around(centre: &(i32, i32, i32), radius: &usize) -> Vec<(i32, i32, i32)> {
-	todo!()
+/// Generate the points across the outline of a circle.
+fn circle_around(center: &(i32, i32, i32), radius: i32) -> Vec<(i32, i32, i32)> {
+	let mut circle = Vec::new();
+	for r in 0..=(radius as f32 * (0.5f32).sqrt()).floor() as i32 {
+		let d = (((radius * radius - r * r) as f32).sqrt()).floor() as i32;
+		let adds = [
+			(center.0 - d, center.1 + r),
+			(center.0 + d, center.1 + r),
+			(center.0 - d, center.1 - r),
+			(center.0 + d, center.1 - r),
+			(center.0 + r, center.1 - d),
+			(center.0 + r, center.1 + d),
+			(center.0 - r, center.1 - d),
+			(center.0 - r, center.1 + d),
+		];
+		for new_add in adds {
+			if !circle.contains(&new_add) {
+				circle.push(new_add);
+			}
+		}
+	}
+	let mut output = Vec::new();
+	for point in circle {
+		output.push((point.0, point.1, center.2));
+	}
+	output
 }
 
+/// Find the angle of a point on a circle relative to its center.
+fn angle_from_center(center: &(i32, i32, i32), point: &(i32, i32, i32)) -> f64 {
+	let delta_x = point.0 - center.0;
+	let delta_y = point.1 - center.1;
+	(delta_y as f64).atan2(delta_x as f64)
+}
+
+/// Remove all targets containing a creature.
 fn filter_targets_by_unoccupied(
 	manager: &Manager,
 	targets: &[(i32, i32, i32)],
@@ -568,6 +604,7 @@ fn filter_targets_by_unoccupied(
 		.collect()
 }
 
+/// Remove all targets NOT containing a creature.
 fn filter_targets_by_occupied(
 	manager: &Manager,
 	targets: &[(i32, i32, i32)],
@@ -584,6 +621,7 @@ fn filter_targets_by_occupied(
 		.collect()
 }
 
+/// Return all tiles in the path of a beam that stops at the first encountered creature.
 fn beam_from_point(manager: &Manager, angle: f64, origin: (i32, i32, i32)) -> Vec<(i32, i32, i32)> {
 	let increments = (angle.cos(), angle.sin());
 	let mut scale = 1.;
