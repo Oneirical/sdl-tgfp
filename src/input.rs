@@ -12,16 +12,23 @@ pub enum Mode {
 
 pub struct Result {
 	pub exit: bool,
+	pub new_manager: Option<world::Manager>,
 }
 
 pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -> Result {
+	let mut new_manager = None;
 	for event in event_pump.poll_iter() {
 		match event {
 			Event::Quit { .. }
 			| Event::KeyDown {
 				scancode: Some(Scancode::Escape),
 				..
-			} => return Result { exit: true },
+			} => {
+				return Result {
+					exit: true,
+					new_manager: None,
+				}
+			}
 			Event::KeyDown {
 				keycode: Some(keycode),
 				..
@@ -32,7 +39,9 @@ pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -
 					if let Species::Keypress(key) = species {
 						if Keycode::from_name(key).unwrap() == keycode {
 							drop(axiom);
-							process_axioms(vec![Synapse::new(x, y, z)], world_manager);
+							new_manager =
+								process_axioms(vec![Synapse::new(x, y, z)], world_manager)
+									.new_manager;
 						}
 					}
 				}
@@ -42,5 +51,8 @@ pub fn world(event_pump: &mut sdl2::EventPump, world_manager: &world::Manager) -
 		}
 	}
 
-	Result { exit: false }
+	Result {
+		exit: false,
+		new_manager,
+	}
 }

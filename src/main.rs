@@ -84,18 +84,12 @@ pub fn main() {
 	if std::path::Path::new("save.toml").exists() {
 		let saved_chars = std::fs::read_to_string("save.toml").unwrap();
 		let saved_manager: world::SavePayload = toml::from_str(&saved_chars).unwrap();
-		world_manager.characters = saved_manager.characters;
+		world_manager.characters = saved_manager.characters.clone();
 		// Locate the player among the saved characters.
-		for candidate in world_manager.characters.iter() {
-			let character = candidate.borrow();
-			let (x, y, z) = (character.x, character.y, character.z);
-			let compare_anchor = saved_manager.reality_anchor.borrow();
-			let (cx, cy, cz) = (compare_anchor.x, compare_anchor.y, compare_anchor.z);
-			// Should it ever be possible for multiple creatures to have the same xyz, this will break.
-			if x == cx && y == cy && z == cz {
-				world_manager.reality_anchor = candidate.clone();
-			}
-		}
+		world_manager.reality_anchor = world_manager
+			.locate_player(&saved_manager)
+			.expect("The player did not exist in the save file")
+			.clone();
 	} else {
 		world_manager.characters.push(player_piece);
 		//world_manager.characters.push(CharacterRef::new(ally));
@@ -129,9 +123,14 @@ pub fn main() {
 	let mut zoom_amount = 0;
 	loop {
 		// Input processing
-		if input::world(&mut event_pump, &mut world_manager).exit {
+		let input_result = input::world(&mut event_pump, &mut world_manager);
+		let (exit, new_manager) = (input_result.exit, input_result.new_manager);
+		if exit {
 			break;
 		};
+		if let Some(new_manager) = new_manager {
+			world_manager = new_manager;
+		}
 
 		// Logic
 		// This is the only place where delta time should be used.

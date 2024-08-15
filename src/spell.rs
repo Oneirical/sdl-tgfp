@@ -109,8 +109,13 @@ pub enum Species {
 	LoadGame,
 }
 
-pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
+pub struct Result {
+	pub new_manager: Option<crate::world::Manager>,
+}
+
+pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 	let mut visited = Vec::new();
+	let mut new_manager = None;
 	while !synapses.is_empty() {
 		let mut syn_count = 0;
 		// Create a temporary vector to hold new synapses
@@ -303,14 +308,29 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 					if std::path::Path::new("save.toml").exists() {
 						let saved_chars = std::fs::read_to_string("save.toml").unwrap();
 						let saved_manager: SavePayload = toml::from_str(&saved_chars).unwrap();
-						assert_eq!(manager.characters.len(), saved_manager.characters.len(),
-							"Due to the immutability of manager, the vec of characters cannot have its size changed, \
-							so every character in it gets transformed instead."
-						);
-						manager.reality_anchor.swap(&saved_manager.reality_anchor);
-						for (i, saved_character) in saved_manager.characters.iter().enumerate() {
-							manager.characters[i].swap(saved_character);
-						}
+						let new_characters = saved_manager.characters.clone();
+						// Find the player among the cloned characters.
+						// We need to do this because the main.rs loop uses as_ptr.
+						let new_anchor = new_characters
+							.iter()
+							.find(|p| {
+								let p = p.borrow();
+								let compare_anchor = saved_manager.reality_anchor.borrow();
+								let (x, y, z) =
+									(compare_anchor.x, compare_anchor.y, compare_anchor.z);
+								// Should it ever be possible for multiple creatures to have the same xyz, this will break.
+								p.x == x && p.y == y && p.z == z
+							})
+							.expect("The player did not exist in the save file")
+							.clone();
+						new_manager = Some(Manager {
+							current_level: manager.current_level.clone(),
+							characters: new_characters,
+							reality_anchor: new_anchor,
+							console: manager.console.clone(),
+							effects: manager.effects.clone(),
+							location: manager.location.clone(),
+						});
 					}
 				}
 				// Add a fading tile effect to each Target.
@@ -437,6 +457,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) {
 			synapses.push(synapse);
 		}
 	}
+	Result { new_manager }
 }
 
 fn manhattan_distance(a: (i32, i32, i32), b: (i32, i32, i32)) -> i32 {

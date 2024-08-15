@@ -71,6 +71,16 @@ impl Manager {
 		std::fs::write("save.toml", output).unwrap();
 	}
 
+	pub fn locate_player(&self, payload: &SavePayload) -> Option<&CharacterRef> {
+		self.characters.iter().find(|p| {
+			let p = p.borrow();
+			let compare_anchor = payload.reality_anchor.borrow();
+			let (x, y, z) = (compare_anchor.x, compare_anchor.y, compare_anchor.z);
+			// Should it ever be possible for multiple creatures to have the same xyz, this will break.
+			p.x == x && p.y == y && p.z == z
+		})
+	}
+
 	pub fn next_character(&self) -> &CharacterRef {
 		&self.characters[0]
 	}
