@@ -104,6 +104,7 @@ pub enum Species {
 	ClearThisCaster(Box<Species>),
 	Orbit(usize),
 	Halo(usize),
+	BeamToTargets,
 
 	// Functions
 	Teleport,
@@ -125,7 +126,9 @@ pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Re
 	for axiom in &world_manager.characters {
 		let axiom = axiom.borrow();
 		let (x, y, z, species) = (axiom.x, axiom.y, axiom.z, &axiom.species);
-		if species == contingency {
+		// The axiom needs to be "above" or "equal" to the player's Z level to trigger.
+		let current_z = world_manager.reality_anchor.borrow().z;
+		if species == contingency && z <= current_z {
 			match contingency {
 				Species::OnTurn => {
 					drop(axiom);
@@ -346,10 +349,33 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 							});
 							halo.append(&mut circle);
 						}
+						targets.clear();
 						targets.append(&mut halo);
 					}
 				}
-				// Transform each Target into a clone of the Caster.
+				// Draw lines from the caster to each target, and target everything across
+				// those lines.
+				Species::BeamToTargets => {
+					let mut beams = Vec::new();
+					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
+						for tar in &*targets {
+							let beam = line_between_two_points(
+								(caster.borrow().x, caster.borrow().y, caster.borrow().z),
+								*tar,
+							);
+							// Remove all duplicates.
+							// FIXME If duplicates get banned all-together, remove this?
+							let mut beam = beam
+								.iter()
+								.filter(|tile| !targets.contains(tile))
+								.copied()
+								.collect();
+							beams.append(&mut beam);
+						}
+						targets.append(&mut beams);
+					}
+				}
+				// Transform each Target's species into the Caster's species.
 				Species::Twinning => {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
 						let cas_species = caster.borrow().species.clone();
@@ -596,14 +622,14 @@ fn circle_around(center: &(i32, i32, i32), radius: i32) -> Vec<(i32, i32, i32)> 
 	for r in 0..=(radius as f32 * (0.5f32).sqrt()).floor() as i32 {
 		let d = (((radius * radius - r * r) as f32).sqrt()).floor() as i32;
 		let adds = [
-			((center.0 - d, center.1 + r, center.2)),
-			((center.0 + d, center.1 + r, center.2)),
-			((center.0 - d, center.1 - r, center.2)),
-			((center.0 + d, center.1 - r, center.2)),
-			((center.0 + r, center.1 - d, center.2)),
-			((center.0 + r, center.1 + d, center.2)),
-			((center.0 - r, center.1 - d, center.2)),
-			((center.0 - r, center.1 + d, center.2)),
+			(center.0 - d, center.1 + r, center.2),
+			(center.0 + d, center.1 + r, center.2),
+			(center.0 - d, center.1 - r, center.2),
+			(center.0 + d, center.1 - r, center.2),
+			(center.0 + r, center.1 - d, center.2),
+			(center.0 + r, center.1 + d, center.2),
+			(center.0 - r, center.1 - d, center.2),
+			(center.0 - r, center.1 + d, center.2),
 		];
 		for new_add in adds {
 			if !circle.contains(&new_add) {
@@ -653,6 +679,32 @@ fn filter_targets_by_occupied(
 			}
 		})
 		.collect()
+}
+
+fn line_between_two_points(start: (i32, i32, i32), end: (i32, i32, i32)) -> Vec<(i32, i32, i32)> {
+	let (dx, dy) = (end.0 - start.0, end.1 - start.1);
+	let (nx, ny) = (dx.abs(), dy.abs());
+	let (sign_x, sign_y) = (dx.signum(), dy.signum());
+
+	let mut p = (start.0, start.1, start.2);
+	let mut points = vec![p];
+	let mut ix = 0;
+	let mut iy = 0;
+	while ix < nx || iy < ny {
+		let step_x = (0.5 + ix as f32) / nx as f32;
+		let step_y = (0.5 + iy as f32) / ny as f32;
+		if step_x < step_y {
+			// next step is horizontal
+			p.0 += sign_x;
+			ix += 1;
+		} else {
+			// next step is vertical
+			p.1 += sign_y;
+			iy += 1;
+		}
+		points.push(p);
+	}
+	points
 }
 
 /// Return all tiles in the path of a beam that stops at the first encountered creature.
