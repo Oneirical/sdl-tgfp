@@ -31,6 +31,7 @@ pub struct Synapse {
 	casters: Vec<CasterTarget>,
 	momentum: OrdDir,
 	pulse: (i32, i32, i32),
+	visited: Vec<(i32, i32, i32)>,
 }
 
 impl Synapse {
@@ -39,6 +40,7 @@ impl Synapse {
 			casters: Vec::new(),
 			momentum: OrdDir::Up,
 			pulse: (x, y, z),
+			visited: Vec::new(),
 		}
 	}
 }
@@ -101,6 +103,7 @@ pub enum Species {
 	RealmShift(i32),
 	ClearThisCaster(Box<Species>),
 	Orbit(usize),
+	Halo(usize),
 
 	// Functions
 	Teleport,
@@ -137,9 +140,13 @@ pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Re
 }
 
 pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
-	let mut visited = Vec::new();
 	let mut new_manager = None;
+	let mut loop_danger_count = 0;
 	while !synapses.is_empty() {
+		loop_danger_count += 1;
+		if loop_danger_count > 500 {
+			panic!("Infinite loop in axioms (use this for something cool later!)");
+		}
 		let mut syn_count = 0;
 		// Create a temporary vector to hold new synapses
 		let mut new_synapses = Vec::new();
@@ -147,7 +154,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 		for synapse in &mut synapses {
 			let (pulse_x, pulse_y, pulse_z) =
 				map_wrap(synapse.pulse.0, synapse.pulse.1, synapse.pulse.2);
-			visited.push((pulse_x, pulse_y, pulse_z));
+			synapse.visited.push((pulse_x, pulse_y, pulse_z));
 			let curr_axiom = match manager.get_character_at(pulse_x, pulse_y, pulse_z) {
 				Some(axiom) => axiom,
 				None => continue,
@@ -307,6 +314,8 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 								let angle_b = angle_from_center(tar, b);
 								angle_a.partial_cmp(&angle_b).unwrap()
 							});
+							let circle: Vec<(i32, i32, i32)> =
+								circle.iter().map(|p| map_wrap(p.0, p.1, p.2)).collect();
 							// "% circle.len()" so that bigger circles are slower to traverse. May need adaptation.
 							let offset = manager.turn_count.borrow().turns % circle.len();
 							let orbit_point = circle
@@ -314,6 +323,24 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 								.expect("The measured offset was out of bounds");
 							(tar.0, tar.1, tar.2) = (orbit_point.0, orbit_point.1, orbit_point.2);
 						}
+					}
+				}
+				// Each target becomes the centre of a circle of `radius`, and is replaced
+				// by new targets all around that circle's outline.
+				Species::Halo(radius) => {
+					let mut halo = Vec::new();
+					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
+						for tar in &*targets {
+							let mut circle = circle_around(tar, *radius as i32);
+							// Sort by clockwise rotation.
+							circle.sort_by(|a, b| {
+								let angle_a = angle_from_center(tar, a);
+								let angle_b = angle_from_center(tar, b);
+								angle_a.partial_cmp(&angle_b).unwrap()
+							});
+							halo.append(&mut circle);
+						}
+						targets.append(&mut halo);
 					}
 				}
 				// Transform each Target into a clone of the Caster.
@@ -427,6 +454,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 				Species::TurnIncrementer => {
 					let mut turn_counter = manager.turn_count.borrow_mut();
 					turn_counter.turns += 1;
+					drop(turn_counter);
 					new_manager = trigger_contingency(manager, &Species::OnTurn).new_manager;
 				}
 				Species::RadioBroadcaster(output_range) => match output_range {
@@ -445,6 +473,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 											casters: synapse.casters.clone(),
 											momentum: synapse.momentum,
 											pulse: (axiom.x, axiom.y, axiom.z),
+											visited: synapse.visited.clone(),
 										}],
 										input_message,
 									),
@@ -475,7 +504,9 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 					map_wrap(pulse_x + adjacency.0, pulse_y + adjacency.1, pulse_z);
 				if manager // Must contain an entity and not have been visited before.
 					.get_character_at(new_pulse_x, new_pulse_y, new_pulse_z)
-					.is_some() && !visited.contains(&(new_pulse_x, new_pulse_y, new_pulse_z))
+					.is_some() && !synapse
+					.visited
+					.contains(&(new_pulse_x, new_pulse_y, new_pulse_z))
 				{
 					potential_new_axioms.push((
 						search_order.get(i).unwrap(),
@@ -493,6 +524,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 						casters: synapse.casters.clone(),
 						momentum: *potential_new_axioms[new_synapse].0,
 						pulse: potential_new_axioms[new_synapse].1,
+						visited: synapse.visited.clone(),
 					})
 				}
 			}
@@ -558,14 +590,14 @@ fn circle_around(center: &(i32, i32, i32), radius: i32) -> Vec<(i32, i32, i32)> 
 	for r in 0..=(radius as f32 * (0.5f32).sqrt()).floor() as i32 {
 		let d = (((radius * radius - r * r) as f32).sqrt()).floor() as i32;
 		let adds = [
-			(center.0 - d, center.1 + r),
-			(center.0 + d, center.1 + r),
-			(center.0 - d, center.1 - r),
-			(center.0 + d, center.1 - r),
-			(center.0 + r, center.1 - d),
-			(center.0 + r, center.1 + d),
-			(center.0 - r, center.1 - d),
-			(center.0 - r, center.1 + d),
+			((center.0 - d, center.1 + r, center.2)),
+			((center.0 + d, center.1 + r, center.2)),
+			((center.0 - d, center.1 - r, center.2)),
+			((center.0 + d, center.1 - r, center.2)),
+			((center.0 + r, center.1 - d, center.2)),
+			((center.0 + r, center.1 + d, center.2)),
+			((center.0 - r, center.1 - d, center.2)),
+			((center.0 - r, center.1 + d, center.2)),
 		];
 		for new_add in adds {
 			if !circle.contains(&new_add) {
@@ -573,11 +605,7 @@ fn circle_around(center: &(i32, i32, i32), radius: i32) -> Vec<(i32, i32, i32)> 
 			}
 		}
 	}
-	let mut output = Vec::new();
-	for point in circle {
-		output.push((point.0, point.1, center.2));
-	}
-	output
+	circle
 }
 
 /// Find the angle of a point on a circle relative to its center.
