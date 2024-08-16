@@ -157,7 +157,13 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 			synapse.visited.push((pulse_x, pulse_y, pulse_z));
 			let curr_axiom = match manager.get_character_at(pulse_x, pulse_y, pulse_z) {
 				Some(axiom) => axiom,
-				None => continue,
+				None => {
+					// Would this happen if a location was spread to, then made unavailable?
+					// FIXME This is very suspicious.
+					synapses_to_remove.push(syn_count);
+					syn_count += 1;
+					continue;
+				}
 			};
 			let curr_ax_species = curr_axiom.borrow().species.clone();
 			match &curr_ax_species {

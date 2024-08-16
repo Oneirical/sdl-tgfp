@@ -29,7 +29,7 @@ pub fn main() {
 	let video_subsystem = sdl_context.video().unwrap();
 	let timer_subsystem = sdl_context.timer().unwrap();
 	let window = video_subsystem
-		.window("SDL TGFP", 1280, 720)
+		.window("SDL TGFP", 128, 72)
 		.resizable()
 		.position_centered()
 		.build()
@@ -135,6 +135,8 @@ pub fn main() {
 		if let Some(new_manager) = new_manager {
 			world_manager = new_manager;
 		}
+
+		continue; // REMOVE THIS
 
 		// Logic
 		// This is the only place where delta time should be used.
