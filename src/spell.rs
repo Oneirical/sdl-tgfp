@@ -85,6 +85,7 @@ pub enum Species {
 	Keypress(String),
 	RadioReceiver(Range),
 	OnTurn,
+	OnCollision(Box<Species>),
 
 	// Anointers
 	SelectSpecies(Box<Species>),
@@ -129,9 +130,13 @@ pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Re
 		// The axiom needs to be "above" or "equal" to the player's Z level to trigger.
 		let current_z = world_manager.reality_anchor.borrow().z;
 		if species == contingency && z <= current_z {
+			drop(axiom);
 			match contingency {
 				Species::OnTurn => {
-					drop(axiom);
+					new_manager =
+						process_axioms(vec![Synapse::new(x, y, z)], world_manager).new_manager;
+				}
+				Species::OnCollision(_) => {
 					new_manager =
 						process_axioms(vec![Synapse::new(x, y, z)], world_manager).new_manager;
 				}

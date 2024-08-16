@@ -1,3 +1,5 @@
+use spell::trigger_contingency;
+
 use crate::character::OrdDir;
 use crate::prelude::*;
 use std::cell::RefCell;
@@ -183,8 +185,11 @@ impl Manager {
 		z: i32,
 	) -> Result<MovementResult, MovementError> {
 		let (x, y, z) = map_wrap(x, y, z);
-		if self.get_character_at(x, y, z).is_some() {
-			// The Some can be unpacked here if we want to check for collisions.
+		if let Some(collision) = self.get_character_at(x, y, z) {
+			trigger_contingency(
+				self,
+				&Species::OnCollision(Box::new(collision.borrow().species.clone())),
+			);
 			Err(MovementError::HitWall)
 		} else {
 			let mut character = character_ref.borrow_mut();
