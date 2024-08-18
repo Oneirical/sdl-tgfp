@@ -36,8 +36,10 @@ Orbit = 7
 Fireworks = []
 [symbols."C"]
 SpecificCoord = [5,3,1] 
-[symbols."P"]
-SelectRealityAnchor = []
+[symbols."A"]
+TargetRealityAnchor = []
+[symbols."Z"]
+BeamToTargets = []
 
 
 # Layout
@@ -51,8 +53,8 @@ SelectRealityAnchor = []
                
    W   !
  R     4      
- wP    5       
- C     6       
- o
- T             
+ w###  5       
+ C  A  6       
+ o  Z
+ T  f          
  

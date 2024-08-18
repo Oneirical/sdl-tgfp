@@ -93,6 +93,7 @@ pub enum Species {
 	SelectRealityAnchor,
 
 	// Forms
+	TargetRealityAnchor,
 	PathfindTargeter(Box<Species>),
 	CardinalTargeter(OrdDir),
 	PlusTargeter,
@@ -293,6 +294,13 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
 						let caster = caster.borrow();
 						targets.push((caster.x, caster.y, caster.z)); // No need for map_wrap, this always stays inbounds
+					}
+				}
+				// Target the player's tile.
+				Species::TargetRealityAnchor => {
+					for CasterTarget { caster: _, targets } in synapse.casters.iter_mut() {
+						let player = manager.reality_anchor.borrow();
+						targets.push((player.x, player.y, player.z)); // No need for map_wrap, this always stays inbounds
 					}
 				}
 				// Target tiles with a beam shooting from the Caster in the direction of their momentum.

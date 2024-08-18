@@ -29,7 +29,7 @@ pub fn main() {
 	let video_subsystem = sdl_context.video().unwrap();
 	let timer_subsystem = sdl_context.timer().unwrap();
 	let window = video_subsystem
-		.window("SDL TGFP", 128, 72)
+		.window("SDL TGFP", 1280, 720)
 		.resizable()
 		.position_centered()
 		.build()
@@ -135,8 +135,6 @@ pub fn main() {
 		if let Some(new_manager) = new_manager {
 			world_manager = new_manager;
 		}
-
-		continue; // REMOVE THIS
 
 		// Logic
 		// This is the only place where delta time should be used.
@@ -266,6 +264,7 @@ pub fn main() {
 			let texture_x = match character.species {
 				spell::Species::Wall => 3,
 				spell::Species::Terminal => 0,
+				spell::Species::WatchBot => 8,
 				spell::Species::EpsilonHead => 67,
 				spell::Species::EpsilonTail(_) => 68,
 				_ => {
