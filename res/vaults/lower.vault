@@ -27,13 +27,18 @@ OnTurn = []
 [symbols."W"]
 WatchBot = [] 
 [symbols."w"]
-SelectRealityAnchor = []
+SelectSpecies = "WatchBot"
 [symbols."e"]
 SelfTargeter = []
 [symbols."o"]
-Orbit = 5
+Orbit = 7
 [symbols."f"]
 Fireworks = []
+[symbols."C"]
+SpecificCoord = [5,3,1] 
+[symbols."P"]
+SelectRealityAnchor = []
+
 
 # Layout
  ###   ###
@@ -46,7 +51,8 @@ Fireworks = []
                
    W   !
  R     4      
- w     5       
- eof   6       
-               
+ wP    5       
+ C     6       
+ o
+ T             
  
