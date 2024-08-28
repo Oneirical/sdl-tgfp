@@ -1,0 +1,8 @@
+name = "Pounce"
+description = "Dash and pummel a nearby target."
+magnitude = "power + 4"
+use_time = 12
+
+on_input = "input/pounce_remove_me"
+on_use = "attacks/pounce"
+on_consider = "consider/attacks/pounce"
