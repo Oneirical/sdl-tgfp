@@ -43,8 +43,35 @@ impl Synapse {
 			visited: Vec::new(),
 		}
 	}
+	pub fn new_with_caster(x: i32, y: i32, z: i32, caster: CharacterRef) -> Self {
+		Synapse {
+			casters: vec![CasterTarget {
+				caster,
+				targets: Vec::new(),
+			}],
+			momentum: OrdDir::Up,
+			pulse: (x, y, z),
+			visited: Vec::new(),
+		}
+	}
+	pub fn new_with_casters(x: i32, y: i32, z: i32, caster_refs: &[CharacterRef]) -> Self {
+		let mut casters: Vec<CasterTarget> = Vec::new();
+		for caster in caster_refs {
+			casters.push(CasterTarget {
+				caster: caster.clone(),
+				targets: Vec::new(),
+			});
+		}
+		Synapse {
+			casters,
+			momentum: OrdDir::Up,
+			pulse: (x, y, z),
+			visited: Vec::new(),
+		}
+	}
 }
 
+// This is just for textures.
 pub fn match_axiom_with_codename(axiom: &Species) -> Option<&str> {
 	let code = match axiom {
 		Species::Keypress(_) => "keypress",
@@ -79,6 +106,7 @@ pub enum Species {
 	EpsilonHead,
 	EpsilonTail(usize),
 	WatchBot,
+	PushCrate,
 	// AXIOMS
 
 	// Contingencies
@@ -98,6 +126,7 @@ pub enum Species {
 	CardinalTargeter(OrdDir),
 	PlusTargeter,
 	SelfTargeter,
+	MomentumTouch,
 	MomentumBeam,
 	SpecificCoord((i32, i32, i32)),
 
@@ -123,7 +152,20 @@ pub struct Result {
 	pub new_manager: Option<crate::world::Manager>,
 }
 
-pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Result {
+#[derive(Clone, Debug)]
+pub enum ContingencyPacket {
+	Collision {
+		collided: CharacterRef,
+		collider: CharacterRef,
+	},
+}
+
+pub fn trigger_contingency(
+	world_manager: &Manager,
+	contingency: &Species,
+	// This last field was created for collisions. It may not cover enough cases.
+	responsible: Option<ContingencyPacket>,
+) -> Result {
 	let mut new_manager = None;
 	for axiom in &world_manager.characters {
 		let axiom = axiom.borrow();
@@ -137,9 +179,20 @@ pub fn trigger_contingency(world_manager: &Manager, contingency: &Species) -> Re
 					new_manager =
 						process_axioms(vec![Synapse::new(x, y, z)], world_manager).new_manager;
 				}
+				// Both an anointer and a contingency, it makes both the collider and collided become casters.
 				Species::OnCollision(_) => {
-					new_manager =
-						process_axioms(vec![Synapse::new(x, y, z)], world_manager).new_manager;
+					let responsible = responsible.clone().expect(
+						"It should be impossible for OnCollision to be triggered without a responsible entity"
+					);
+					if let ContingencyPacket::Collision { collided, collider } = responsible {
+						new_manager = process_axioms(
+							vec![Synapse::new_with_casters(x, y, z, &[collided, collider])],
+							world_manager,
+						)
+						.new_manager;
+					} else {
+						panic!("The packet sent to OnCollision should always be a collision.");
+					}
 				}
 				_ => (),
 			}
@@ -311,6 +364,20 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 							manager,
 							caster.momentum,
 							(caster.x, caster.y, caster.z),
+							100,
+						);
+						targets.append(&mut beam);
+					}
+				}
+				// Target one tile from each Caster in the direction of their momentum.
+				Species::MomentumTouch => {
+					for CasterTarget { caster, targets } in synapse.casters.iter_mut() {
+						let caster = caster.borrow();
+						let mut beam = beam_from_point(
+							manager,
+							caster.momentum,
+							(caster.x, caster.y, caster.z),
+							1,
 						);
 						targets.append(&mut beam);
 					}
@@ -402,7 +469,8 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 				// Teleport each Caster to its closest Target.
 				Species::Teleport => {
 					for CasterTarget { caster, targets } in synapse.casters.iter() {
-						let targets = filter_targets_by_unoccupied(manager, targets);
+						// Commented because this line prevents collisions from happening.
+						// let targets = filter_targets_by_unoccupied(manager, targets);
 						let b_caster = caster.borrow_mut();
 						let (cx, cy, cz) = (b_caster.x, b_caster.y, b_caster.z);
 						drop(b_caster);
@@ -500,7 +568,7 @@ pub fn process_axioms(mut synapses: Vec<Synapse>, manager: &Manager) -> Result {
 					let mut turn_counter = manager.turn_count.borrow_mut();
 					turn_counter.turns += 1;
 					drop(turn_counter);
-					new_manager = trigger_contingency(manager, &Species::OnTurn).new_manager;
+					new_manager = trigger_contingency(manager, &Species::OnTurn, None).new_manager;
 				}
 				Species::RadioBroadcaster(output_range) => match output_range {
 					Range::Global(output_message) => {
@@ -721,7 +789,12 @@ fn line_between_two_points(start: (i32, i32, i32), end: (i32, i32, i32)) -> Vec<
 }
 
 /// Return all tiles in the path of a beam that stops at the first encountered creature.
-fn beam_from_point(manager: &Manager, angle: f64, origin: (i32, i32, i32)) -> Vec<(i32, i32, i32)> {
+fn beam_from_point(
+	manager: &Manager,
+	angle: f64,
+	origin: (i32, i32, i32),
+	max_range: usize,
+) -> Vec<(i32, i32, i32)> {
 	let increments = (angle.cos(), angle.sin());
 	let mut scale = 1.;
 	let mut out = Vec::new();
@@ -746,7 +819,7 @@ fn beam_from_point(manager: &Manager, angle: f64, origin: (i32, i32, i32)) -> Ve
 		}
 		scale += 1.;
 
-		if scale > 100. {
+		if scale > max_range as f64 {
 			// Hardcoded maximum range, to avoid an infinite loop.
 			break;
 		}

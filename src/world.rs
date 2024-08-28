@@ -1,4 +1,4 @@
-use spell::trigger_contingency;
+use spell::{trigger_contingency, ContingencyPacket};
 
 use crate::character::OrdDir;
 use crate::prelude::*;
@@ -7,8 +7,8 @@ use std::cell::RefCell;
 use self::animation::TileEffect;
 use self::spell::Species;
 
-pub const WORLD_ROWS: usize = 16;
-pub const WORLD_COLS: usize = 16;
+pub const WORLD_ROWS: usize = 45;
+pub const WORLD_COLS: usize = 45;
 
 pub type CharacterRef = std::rc::Rc<RefCell<character::Piece>>;
 
@@ -184,12 +184,33 @@ impl Manager {
 		y: i32,
 		z: i32,
 	) -> Result<MovementResult, MovementError> {
+		// TODO Preventing the momentum from being warped by the mapwrap
+		// by keeping the original coords.
 		let (x, y, z) = map_wrap(x, y, z);
 		if let Some(collision) = self.get_character_at(x, y, z) {
+			let mut character = character_ref.borrow_mut();
+			if (character.x, character.y, character.z) == (x, y, z) {
+				// Prevent entities from colliding with themselves.
+				return Err(MovementError::HitWall);
+			}
+			let mut coll_character = collision.borrow_mut();
+			let (ix, iy) = (character.x, character.y);
+			let (dx, dy) = ((x - ix) as f64, (y - iy) as f64);
+			// Both the character and the thing being pushed have their momentums changed.
+			character.momentum = dy.atan2(dx);
+			coll_character.momentum = dy.atan2(dx);
+			let collided_species = coll_character.species.clone();
+			drop(character);
+			drop(coll_character);
 			trigger_contingency(
 				self,
-				&Species::OnCollision(Box::new(collision.borrow().species.clone())),
+				&Species::OnCollision(Box::new(collided_species)),
+				Some(ContingencyPacket::Collision {
+					collided: collision.clone(),
+					collider: character_ref.clone(),
+				}),
 			);
+			// TODO outsource all this collision logic to MovementError in Teleport?
 			Err(MovementError::HitWall)
 		} else {
 			let mut character = character_ref.borrow_mut();

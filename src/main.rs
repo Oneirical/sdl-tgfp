@@ -266,6 +266,7 @@ pub fn main() {
 				spell::Species::Terminal => 0,
 				spell::Species::WatchBot => 8,
 				spell::Species::EpsilonHead => 67,
+				spell::Species::PushCrate => 7,
 				spell::Species::EpsilonTail(_) => 68,
 				_ => {
 					// It could be an axiom.

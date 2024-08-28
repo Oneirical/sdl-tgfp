@@ -40,21 +40,27 @@ SpecificCoord = [5,3,1]
 TargetRealityAnchor = []
 [symbols."Z"]
 BeamToTargets = []
+[symbols."@"]
+PushCrate = []
+[symbols."O"]
+OnCollision = "PushCrate"
+[symbols."M"]
+MomentumTouch = []
 
 
 # Layout
  ###   ###
- #       #
+ #       #   @
  #  R T  #
-   PE123   
+   PE123     OMTf
  # T T T #
  #       #    
  ###   ###   
                
-   W   !
- R     4      
- w###  5       
- C  A  6       
+   W   
+ R           
+ w# #         
+ C  A         
  o  Z
  T  f          
  
