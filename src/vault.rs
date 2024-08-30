@@ -1,3 +1,5 @@
+use world::Manager;
+
 use crate::floor::Tile;
 use crate::prelude::*;
 use std::{collections::HashMap, fs, path::Path};
@@ -92,16 +94,22 @@ impl Vault {
 			characters,
 		})
 	}
-	pub fn cellular_automata() -> Result<Self> {
+	pub fn cellular_automata(manager: &Manager) -> Result<Self> {
 		let width = 36;
 		let mut tiles = Vec::new();
 		let characters = Vec::new();
 		let mut rng = rand::thread_rng();
 
+		// Translate from (x, y) to a place in the tiles Vec
 		fn xy_idx(x: i32, y: i32, width: i32) -> usize {
 			(y * width + x) as usize
 		}
+		// Translate from a place in the tiles Vec to (x, y)
+		fn idx_xy(idx: usize, width: i32) -> (i32, i32) {
+			(idx as i32 % width, idx as i32 / width)
+		}
 
+		// Randomly spawn walls
 		for _y in 1..width - 1 {
 			for _x in 1..width - 1 {
 				let roll = rng.gen_range(1..100);
@@ -113,6 +121,7 @@ impl Vault {
 			}
 		}
 
+		// Use cellular automata to create a cave layout
 		for _i in 0..15 {
 			let mut newtiles = tiles.clone();
 
@@ -155,6 +164,40 @@ impl Vault {
 
 			tiles = newtiles.clone();
 		}
+
+		// Pick a spawn location
+		let mut starting_position = (width / 2, width / 2);
+		let mut start_idx = xy_idx(starting_position.0, starting_position.1, width);
+		while tiles[start_idx].unwrap() != Tile::Floor {
+			starting_position.0 -= 1;
+			start_idx = xy_idx(starting_position.0, starting_position.1, width);
+		}
+
+		// Find all tiles we can reach from the starting point
+		let mut newtiles = tiles.clone();
+		for (i, tile) in tiles.iter_mut().enumerate() {
+			if tile.unwrap() == Tile::Floor {
+				let mut dijkstra =
+					astar::DijkstraMap::target(width as usize, width as usize, &[idx_xy(i, width)]);
+
+				if let Ok(x) = starting_position.0.try_into()
+					&& let Ok(y) = starting_position.1.try_into()
+				{
+					dijkstra.explore(x, y, |x, y, base| match manager.current_floor.get(x, y) {
+						Some(floor::Tile::Floor) | Some(floor::Tile::Exit) => base + 1,
+						Some(floor::Tile::Wall) | None => astar::IMPASSABLE,
+					});
+				}
+				if dijkstra
+					.step(starting_position.0, starting_position.1)
+					.is_none()
+				{
+					newtiles[i] = Some(Tile::Wall);
+				}
+			}
+		}
+
+		let tiles = newtiles;
 
 		Ok(Self {
 			tiles,
