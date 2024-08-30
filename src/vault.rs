@@ -92,4 +92,74 @@ impl Vault {
 			characters,
 		})
 	}
+	pub fn cellular_automata() -> Result<Self> {
+		let width = 36;
+		let mut tiles = Vec::new();
+		let characters = Vec::new();
+		let mut rng = rand::thread_rng();
+
+		fn xy_idx(x: i32, y: i32, width: i32) -> usize {
+			(y * width + x) as usize
+		}
+
+		for _y in 1..width - 1 {
+			for _x in 1..width - 1 {
+				let roll = rng.gen_range(1..100);
+				if roll > 55 {
+					tiles.push(Some(Tile::Floor));
+				} else {
+					tiles.push(Some(Tile::Wall));
+				}
+			}
+		}
+
+		for _i in 0..15 {
+			let mut newtiles = tiles.clone();
+
+			for y in 1..width - 1 {
+				for x in 1..width - 1 {
+					let idx = xy_idx(x, y, width);
+					let mut neighbors = 0;
+					if tiles[idx - 1].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx + 1].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx - width as usize].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx + width as usize].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx - (width as usize - 1)].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx - (width as usize + 1)].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx + (width as usize - 1)].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+					if tiles[idx + (width as usize + 1)].unwrap() == Tile::Wall {
+						neighbors += 1;
+					}
+
+					if neighbors > 4 || neighbors == 0 {
+						newtiles[idx] = Some(Tile::Wall);
+					} else {
+						newtiles[idx] = Some(Tile::Floor);
+					}
+				}
+			}
+
+			tiles = newtiles.clone();
+		}
+
+		Ok(Self {
+			tiles,
+			width: width as usize,
+			characters,
+		})
+	}
 }
